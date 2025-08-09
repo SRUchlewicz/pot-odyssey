@@ -82,37 +82,70 @@ export class Game extends Scene
         const rightWall = this.platforms.create(2098, 500, 'ground'); 
         rightWall.setScale(0.1, 20).refreshBody().setVisible(false); // Invisible right boundary
 
-        // ===== CLEAN TEST LEVEL =====
+        // ===== CLEAN PLAYABLE TEST LEVEL =====
         
-        // Starting platforms (ground level)
-        this.platforms.create(200, 600, 'ground'); // Start here
-        this.platforms.create(500, 550, 'ground'); // Jump to this one
+        // ===== MAIN PROGRESSION PATH =====
         
-        // Simple climbing tower (left side) - well spaced
-        this.platforms.create(150, 450, 'ground'); // Step 1
-        this.platforms.create(300, 350, 'ground'); // Step 2  
-        this.platforms.create(150, 250, 'ground'); // Step 3 - Medium height
-        this.platforms.create(300, 150, 'ground'); // Step 4 - High height for damage testing
-        this.platforms.create(150, 50, 'ground');  // Step 5 - Very high for maximum damage
+        // Starting area
+        this.platforms.create(200, 700, 'ground'); // Main spawn platform
+        this.platforms.create(400, 700, 'ground'); // Starting walkway
         
-        // Right side platforms for variety
-        this.platforms.create(650, 450, 'ground'); 
-        this.platforms.create(800, 350, 'ground'); 
-        this.platforms.create(650, 250, 'ground'); // Medium height fall
-        this.platforms.create(800, 150, 'ground'); // High fall
-        this.platforms.create(650, 50, 'ground');  // Maximum height fall
+        // ===== SECTION 1: BASIC MOVEMENT (X: 400-700) =====
+        this.platforms.create(500, 600, 'ground'); // Simple jump down
+        this.platforms.create(650, 550, 'ground'); // Cross gap
         
-        // Wall slide testing - single tall wall in center
-        const wallForSliding = this.platforms.create(450, 250, 'ground');
-        wallForSliding.setScale(0.3, 10).refreshBody(); // One big wall for wall sliding practice
+        // ===== SECTION 2: VARIABLE JUMP TEST (X: 700-1000) =====
+        this.platforms.create(750, 600, 'ground'); // Entry
+        this.platforms.create(850, 550, 'ground'); // Small jump (tap)
+        this.platforms.create(950, 450, 'ground'); // Big jump (hold)
+        
+        // ===== SECTION 3: COYOTE TIME TEST (X: 1000-1300) =====
+        this.platforms.create(1050, 500, 'ground'); // Approach
+        // 200px gap for coyote time
+        this.platforms.create(1250, 500, 'ground'); // Landing (needs coyote time)
+        
+        // ===== SECTION 4: WALL SLIDE TEST (X: 1300-1600) =====
+        this.platforms.create(1350, 600, 'ground'); // Approach
+        
+        // Single tall wall for sliding
+        const mainWall = this.platforms.create(1450, 400, 'ground');
+        mainWall.setScale(0.2, 6).refreshBody(); // Tall narrow wall
+        
+        this.platforms.create(1550, 300, 'ground'); // Landing after wall slide
+        
+        // ===== SECTION 5: DAMAGE TEST TOWER (X: 1600-1800) =====
+        this.platforms.create(1650, 700, 'ground'); // Ground entry
+        this.platforms.create(1650, 500, 'ground'); // Medium height (safe)
+        this.platforms.create(1650, 250, 'ground'); // High fall (damage)
+        this.platforms.create(1650, 50, 'ground');  // Very high (major damage)
+        
+        // ===== SECTION 6: ENDURANCE RUN (X: 1800-2000) =====
+        // Simple platforms for moisture testing
+        this.platforms.create(1850, 500, 'ground');
+        this.platforms.create(1950, 450, 'ground');
+        
+        // ===== ADVANCED OPTIONAL AREAS =====
+        
+        // High-skill combo area (upper level)
+        this.platforms.create(800, 300, 'ground');  // Jump up here from section 2
+        this.platforms.create(1000, 250, 'ground'); // Requires perfect variable jump
+        this.platforms.create(1200, 200, 'ground'); // Even higher challenge
+        
+        // ===== CLEAR SECTION LABELS =====
+        this.add.text(200, 600, 'START', { fontSize: '32px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+        this.add.text(850, 400, 'VARIABLE JUMP', { fontSize: '24px', color: '#ffff00', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(1150, 450, 'COYOTE TIME', { fontSize: '24px', color: '#00ff00', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(1400, 200, 'WALL SLIDE', { fontSize: '24px', color: '#ff8800', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(1650, 150, 'DAMAGE TEST', { fontSize: '24px', color: '#ff0000', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(1900, 400, 'MOISTURE RUN', { fontSize: '24px', color: '#0088ff', stroke: '#000000', strokeThickness: 2 });
         
         // Make sure all platforms are static
         this.platforms.children.entries.forEach((platform: any) => {
             platform.body.immovable = true;
         });
 
-        // Create player (pot) sprite
-        this.player = this.physics.add.sprite(100, 450, 'pot');
+        // Create player (pot) sprite  
+        this.player = this.physics.add.sprite(200, 650, 'pot'); // Spawn on main starting platform
         this.player.setBounce(0.1);
         this.player.setCollideWorldBounds(false); // Disable for test level - allow free movement
 
@@ -267,7 +300,7 @@ export class Game extends Scene
         
         // Respawn if player falls off the world
         if (this.player.y > 1000) {
-            this.player.setPosition(200, 600); // Reset to starting platform
+            this.player.setPosition(200, 650); // Reset to main starting platform
             this.player.setVelocity(0, 0); // Stop all movement
             console.log("Fell off the world! Respawning...");
         }
@@ -490,7 +523,7 @@ export class Game extends Scene
         // Respawn with 50% moisture and full durability (as per PRD failure mechanics)
         this.moisture = 50;
         this.durability = 4;
-        this.player.setPosition(100, 450); // Reset to starting position
+        this.player.setPosition(200, 650); // Reset to main starting platform
         console.log("Pot shattered! Respawning with 50% moisture and full durability.");
     }
     
@@ -498,7 +531,7 @@ export class Game extends Scene
     {
         // Respawn with 50% moisture (as per PRD failure mechanics)
         this.moisture = 50;
-        this.player.setPosition(100, 450); // Reset to starting position
+        this.player.setPosition(200, 650); // Reset to main starting platform
         console.log("Pot dried out! Respawning with 50% moisture.");
     }
 }
