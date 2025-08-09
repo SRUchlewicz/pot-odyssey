@@ -20,8 +20,12 @@ export class Game extends Scene
     
     // Coyote time parameters (based on GDQuest/GDevelop patterns)
     coyoteTimer: number = 0;
-    readonly COYOTE_TIME_MS: number = 60; // Grace period in milliseconds (~4 frames at 60fps)
+    readonly COYOTE_TIME_MS: number = 40; // Grace period in milliseconds (~2.5 frames at 60fps)
     wasOnGround: boolean = false;
+    
+    // Jump buffering parameters (based on GameMaker Flynn pattern)
+    jumpBufferTimer: number = 0;
+    readonly JUMP_BUFFER_MS: number = 180; // Buffer early inputs for 120ms
     
     // Mobile controls
     leftButton: Phaser.GameObjects.Text;
@@ -92,8 +96,14 @@ export class Game extends Scene
             this.player.setVelocityX(0);
         }
 
-        // Variable jump implementation  
-        const jumpInput = this.cursors.up.isDown || this.spaceKey.isDown || mobileInput.jumpPressed;
+        // Jump input detection for buffering (detect press, not hold)
+        const jumpInputPressed = this.cursors.up.isDown || this.spaceKey.isDown || mobileInput.jumpPressed;
+        const jumpInputJustPressed = (this.cursors.up.isDown && !this.jumpPressed) || 
+                                    (this.spaceKey.isDown && !this.jumpPressed) || 
+                                    mobileInput.jumpPressed;
+        
+        // Update jump pressed state for next frame
+        this.jumpPressed = jumpInputPressed;
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         
         // Ground detection - check if touching down AND velocity is downward or small
@@ -114,14 +124,24 @@ export class Game extends Scene
         const timeSinceLeftGround = this.game.loop.time - this.coyoteTimer;
         const inCoyoteTime = this.coyoteTimer > 0 && timeSinceLeftGround <= this.COYOTE_TIME_MS;
         
-        // Variable jump logic - hold for higher jumps
-        if (jumpInput) {
+        // Jump buffering logic - store jump input while airborne
+        if (jumpInputJustPressed) {
+            this.jumpBufferTimer = this.game.loop.time; // Record when jump was pressed
+        }
+        
+        // Check if we have a buffered jump within time limit
+        const timeSinceJumpPressed = this.game.loop.time - this.jumpBufferTimer;
+        const hasBufferedJump = this.jumpBufferTimer > 0 && timeSinceJumpPressed <= this.JUMP_BUFFER_MS;
+        
+        // Combined jump logic - handle buffered jumps on landing or immediate jumps
+        if (jumpInputPressed) {
             if ((isOnGround || inCoyoteTime) && this.jumpTimer === 0 && this.canJump) {
                 // Start new jump (either on ground or within coyote time)
                 this.jumpTimer = 1;
                 this.player.setVelocityY(this.INITIAL_JUMP_VELOCITY);
                 this.canJump = false; // Prevent multiple jumps until landing
                 this.coyoteTimer = 0; // Consume coyote time
+                this.jumpBufferTimer = 0; // Consume buffered jump
             } else if (this.jumpTimer > 0 && this.jumpTimer < this.MAX_JUMP_FRAMES) {
                 // Continue adding upward force - but only if we're still moving upward
                 this.jumpTimer++;
@@ -134,6 +154,15 @@ export class Game extends Scene
         } else {
             // Jump button released - stop variable jump
             this.jumpTimer = 0;
+        }
+        
+        // Execute buffered jump when landing (without input held)
+        if (!jumpInputPressed && hasBufferedJump && isOnGround && this.canJump && this.jumpTimer === 0) {
+            // Execute the buffered jump
+            this.jumpTimer = 1;
+            this.player.setVelocityY(this.INITIAL_JUMP_VELOCITY);
+            this.canJump = false; // Prevent multiple jumps until landing
+            this.jumpBufferTimer = 0; // Consume buffered jump
         }
     }
 
