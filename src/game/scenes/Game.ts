@@ -25,7 +25,12 @@ export class Game extends Scene
     
     // Jump buffering parameters (based on GameMaker Flynn pattern)
     jumpBufferTimer: number = 0;
-    readonly JUMP_BUFFER_MS: number = 180; // Buffer early inputs for 120ms
+    readonly JUMP_BUFFER_MS: number = 180; // Buffer early inputs for 180ms
+    
+    // Wall slide parameters (based on PRD specs)
+    isWallSliding: boolean = false;
+    wallSideDetected: 'left' | 'right' | null = null;
+    readonly WALL_SLIDE_SPEED: number = 60; // Max fall speed when wall sliding (px/s)
     
     // Mobile controls
     leftButton: Phaser.GameObjects.Text;
@@ -53,6 +58,13 @@ export class Game extends Scene
         this.platforms.create(400, 568, 'ground');
         this.platforms.create(750, 400, 'ground');
         this.platforms.create(50, 250, 'ground');
+        
+        // Create walls for wall slide testing (vertical platforms)
+        const leftWall = this.platforms.create(200, 300, 'ground');
+        leftWall.setScale(0.3, 3).refreshBody(); // Thin and tall
+        
+        const rightWall = this.platforms.create(800, 450, 'ground');
+        rightWall.setScale(0.3, 2.5).refreshBody(); // Thin and tall
         
         // Make sure all platforms are static
         this.platforms.children.entries.forEach((platform: any) => {
@@ -84,17 +96,7 @@ export class Game extends Scene
         // Get mobile input state
         const mobileInput = this.registry.get('mobileInput') || { leftPressed: false, rightPressed: false };
 
-        // Combined movement controls (keyboard + mobile)
-        const leftInput = this.cursors.left.isDown || mobileInput.leftPressed;
-        const rightInput = this.cursors.right.isDown || mobileInput.rightPressed;
-
-        if (leftInput) {
-            this.player.setVelocityX(-160);
-        } else if (rightInput) {
-            this.player.setVelocityX(160);
-        } else {
-            this.player.setVelocityX(0);
-        }
+        // Combined movement controls (keyboard + mobile) - will be handled after wall slide detection
 
         // Jump input detection for buffering (detect press, not hold)
         const jumpInputPressed = this.cursors.up.isDown || this.spaceKey.isDown || mobileInput.jumpPressed;
@@ -108,6 +110,31 @@ export class Game extends Scene
         
         // Ground detection - check if touching down AND velocity is downward or small
         const isOnGround = body.touching.down && body.velocity.y >= -10;
+        
+        // Wall detection for wall sliding
+        const isTouchingLeftWall = body.touching.left;
+        const isTouchingRightWall = body.touching.right;
+        const leftInput = this.cursors.left.isDown || mobileInput.leftPressed;
+        const rightInput = this.cursors.right.isDown || mobileInput.rightPressed;
+        
+        // Determine if we should wall slide
+        const shouldWallSlide = !isOnGround && body.velocity.y > 0; // Falling and not on ground
+        
+        if (shouldWallSlide) {
+            if (isTouchingLeftWall && leftInput) {
+                this.isWallSliding = true;
+                this.wallSideDetected = 'left';
+            } else if (isTouchingRightWall && rightInput) {
+                this.isWallSliding = true;
+                this.wallSideDetected = 'right';
+            } else {
+                this.isWallSliding = false;
+                this.wallSideDetected = null;
+            }
+        } else {
+            this.isWallSliding = false;
+            this.wallSideDetected = null;
+        }
         
         // Coyote time logic - track time since leaving ground
         if (isOnGround) {
@@ -163,6 +190,26 @@ export class Game extends Scene
             this.player.setVelocityY(this.INITIAL_JUMP_VELOCITY);
             this.canJump = false; // Prevent multiple jumps until landing
             this.jumpBufferTimer = 0; // Consume buffered jump
+        }
+        
+        // Apply wall slide physics
+        if (this.isWallSliding) {
+            // Limit fall speed when wall sliding
+            if (body.velocity.y > this.WALL_SLIDE_SPEED) {
+                body.velocity.y = this.WALL_SLIDE_SPEED;
+            }
+            // Don't apply horizontal movement when wall sliding
+        }
+        
+        // Regular movement (only when not wall sliding)
+        if (!this.isWallSliding) {
+            if (leftInput) {
+                this.player.setVelocityX(-160);
+            } else if (rightInput) {
+                this.player.setVelocityX(160);
+            } else {
+                this.player.setVelocityX(0);
+            }
         }
     }
 
