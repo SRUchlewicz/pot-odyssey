@@ -12,7 +12,14 @@ const config: Phaser.Types.Core.GameConfig = {
     width: 1024,
     height: 768,
     parent: 'game-container',
-    backgroundColor: '#028af8',
+    backgroundColor: '#87CEEB', // Sky blue for garden theme
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { x: 0, y: 800 }, // Platformer gravity
+            debug: false // Set to true for physics debugging
+        }
+    },
     scene: [
         Boot,
         Preloader,

@@ -33,6 +33,26 @@ export class Preloader extends Scene
         this.load.setPath('assets');
 
         this.load.image('logo', 'logo.png');
+        
+        // Create placeholder graphics for now
+        this.createPlaceholderAssets();
+    }
+
+    createPlaceholderAssets ()
+    {
+        // Create pot placeholder - a brown rounded rectangle
+        const potGraphics = this.add.graphics();
+        potGraphics.fillStyle(0x8B4513); // Saddle brown
+        potGraphics.fillRoundedRect(0, 0, 32, 40, 4);
+        potGraphics.generateTexture('pot', 32, 40);
+        potGraphics.destroy();
+
+        // Create ground placeholder - a green rectangle
+        const groundGraphics = this.add.graphics();
+        groundGraphics.fillStyle(0x228B22); // Forest green
+        groundGraphics.fillRect(0, 0, 400, 32);
+        groundGraphics.generateTexture('ground', 400, 32);
+        groundGraphics.destroy();
     }
 
     create ()

@@ -1,18 +1,18 @@
 {
-    "name": "template-vite-ts",
-    "description": "A Phaser 3 TypeScript template using Vite.",
-    "version": "1.4.0",
+    "name": "pot-odyssey",
+    "description": "Pot Odyssey: Quest for the Perfect Plant - A cozy exploration platformer where you play as a sentient flowerpot searching diverse biomes for seeds.",
+    "version": "0.1.0",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/phaserjs/template-vite-ts.git"
+        "url": "git+https://github.com/sebol/pot-odyssey.git"
     },
-    "author": "Phaser Studio <support@phaser.io> (https://phaser.io/)",
+    "author": "Sebastian Ruchlewicz",
     "license": "MIT",
-    "licenseUrl": "http://www.opensource.org/licenses/mit-license.php",
+    "keywords": ["phaser3", "platformer", "browser-game", "cozy-game", "exploration"],
     "bugs": {
-        "url": "https://github.com/phaserjs/template-vite-ts/issues"
+        "url": "https://github.com/sebol/pot-odyssey/issues"
     },
-    "homepage": "https://github.com/phaserjs/template-vite-ts#readme",
+    "homepage": "https://github.com/sebol/pot-odyssey#readme",
     "scripts": {
         "dev": "node log.js dev & vite --config vite/config.dev.mjs",
         "build": "node log.js build & vite build --config vite/config.prod.mjs",
