@@ -11,6 +11,12 @@ export class Game extends Scene
     // Jump state management
     canJump: boolean = true;
     jumpPressed: boolean = false;
+    jumpTimer: number = 0;
+    
+    // Variable jump parameters (based on Amphibian Abstracts pattern)
+    readonly MAX_JUMP_FRAMES: number = 30; // ~500ms at 60fps
+    readonly INITIAL_JUMP_VELOCITY: number = -400; // Base jump strength
+    readonly JUMP_VELOCITY_BOOST: number = 7; // Additional upward force per frame
     
     // Mobile controls
     leftButton: Phaser.GameObjects.Text;
@@ -81,8 +87,8 @@ export class Game extends Scene
             this.player.setVelocityX(0);
         }
 
-        // Jump state management
-        const jumpInput = this.cursors.up.isDown || this.spaceKey.isDown;
+        // Variable jump implementation  
+        const jumpInput = this.cursors.up.isDown || this.spaceKey.isDown || mobileInput.jumpPressed;
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         
         // Ground detection - check if touching down AND velocity is downward or small
@@ -93,15 +99,25 @@ export class Game extends Scene
             this.canJump = true;
         }
         
-        // Handle jump input (only on first press, not held)
-        if (jumpInput && !this.jumpPressed) {
-            this.jumpPressed = true;
-            if (this.canJump && isOnGround) {
-                this.player.setVelocityY(-600);
-                this.canJump = false; // Prevent multiple jumps
+        // Variable jump logic - hold for higher jumps
+        if (jumpInput) {
+            if (isOnGround && this.jumpTimer === 0 && this.canJump) {
+                // Start new jump
+                this.jumpTimer = 1;
+                this.player.setVelocityY(this.INITIAL_JUMP_VELOCITY);
+                this.canJump = false; // Prevent multiple jumps until landing
+            } else if (this.jumpTimer > 0 && this.jumpTimer < this.MAX_JUMP_FRAMES) {
+                // Continue adding upward force - but only if we're still moving upward
+                this.jumpTimer++;
+                const body = this.player.body as Phaser.Physics.Arcade.Body;
+                if (body.velocity.y < 0) { // Only apply while moving upward
+                    const additionalForce = -(this.JUMP_VELOCITY_BOOST); // Small upward force
+                    body.velocity.y += additionalForce; // Add to existing velocity instead of replacing
+                }
             }
-        } else if (!jumpInput) {
-            this.jumpPressed = false; // Reset when key is released
+        } else {
+            // Jump button released - stop variable jump
+            this.jumpTimer = 0;
         }
     }
 
@@ -138,7 +154,7 @@ export class Game extends Scene
         .setScrollFactor(0);
 
         // Initialize mobile input state
-        const mobileInput = { leftPressed: false, rightPressed: false };
+        const mobileInput = { leftPressed: false, rightPressed: false, jumpPressed: false };
         this.registry.set('mobileInput', mobileInput);
 
         // Left button events
@@ -169,15 +185,18 @@ export class Game extends Scene
             this.registry.set('mobileInput', mobileInput);
         });
 
-        // Jump button events - single tap only
+        // Jump button events - hold for variable jump
         this.jumpButton.on('pointerdown', () => {
-            const body = this.player.body as Phaser.Physics.Arcade.Body;
-            const isOnGround = body.touching.down && body.velocity.y >= -10;
-            
-            if (this.canJump && isOnGround) {
-                this.player.setVelocityY(-600);
-                this.canJump = false; // Prevent multiple jumps
-            }
+            mobileInput.jumpPressed = true;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.jumpButton.on('pointerup', () => {
+            mobileInput.jumpPressed = false;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.jumpButton.on('pointerout', () => {
+            mobileInput.jumpPressed = false;
+            this.registry.set('mobileInput', mobileInput);
         });
     }
 }
