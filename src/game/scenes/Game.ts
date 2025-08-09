@@ -18,6 +18,11 @@ export class Game extends Scene
     readonly INITIAL_JUMP_VELOCITY: number = -400; // Base jump strength
     readonly JUMP_VELOCITY_BOOST: number = 7; // Additional upward force per frame
     
+    // Coyote time parameters (based on GDQuest/GDevelop patterns)
+    coyoteTimer: number = 0;
+    readonly COYOTE_TIME_MS: number = 60; // Grace period in milliseconds (~4 frames at 60fps)
+    wasOnGround: boolean = false;
+    
     // Mobile controls
     leftButton: Phaser.GameObjects.Text;
     rightButton: Phaser.GameObjects.Text;
@@ -94,18 +99,29 @@ export class Game extends Scene
         // Ground detection - check if touching down AND velocity is downward or small
         const isOnGround = body.touching.down && body.velocity.y >= -10;
         
-        // Reset jump ability when on ground
+        // Coyote time logic - track time since leaving ground
         if (isOnGround) {
             this.canJump = true;
+            this.coyoteTimer = 0; // Reset coyote timer when on ground
+            this.wasOnGround = true;
+        } else if (this.wasOnGround && !isOnGround) {
+            // Just left the ground - start coyote timer
+            this.coyoteTimer = this.game.loop.time;
+            this.wasOnGround = false;
         }
+        
+        // Check if we're within coyote time window
+        const timeSinceLeftGround = this.game.loop.time - this.coyoteTimer;
+        const inCoyoteTime = this.coyoteTimer > 0 && timeSinceLeftGround <= this.COYOTE_TIME_MS;
         
         // Variable jump logic - hold for higher jumps
         if (jumpInput) {
-            if (isOnGround && this.jumpTimer === 0 && this.canJump) {
-                // Start new jump
+            if ((isOnGround || inCoyoteTime) && this.jumpTimer === 0 && this.canJump) {
+                // Start new jump (either on ground or within coyote time)
                 this.jumpTimer = 1;
                 this.player.setVelocityY(this.INITIAL_JUMP_VELOCITY);
                 this.canJump = false; // Prevent multiple jumps until landing
+                this.coyoteTimer = 0; // Consume coyote time
             } else if (this.jumpTimer > 0 && this.jumpTimer < this.MAX_JUMP_FRAMES) {
                 // Continue adding upward force - but only if we're still moving upward
                 this.jumpTimer++;
