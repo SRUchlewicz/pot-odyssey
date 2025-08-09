@@ -7,12 +7,15 @@
 **Playable Game Features**:
 - 🎮 **Player Controller**: Brown pot character with physics body
 - ⬅️➡️ **Movement**: Left/right movement with arrow keys or touch buttons  
-- ⬆️ **Jumping**: Single jump with spacebar/up arrow or mobile tap button
-- 📱 **Cross-Platform**: Desktop keyboard + mobile touch controls working
+- ⬆️ **Advanced Jumping**: Variable jump (hold for height), coyote time (40ms), jump buffering (180ms)
+- 🧗 **Wall Sliding**: Slide down walls at reduced speed (60px/s) when holding toward wall
+- 💧 **Moisture System**: Diegetic ring visualization, drains 5% every 10s, respawn at 0%
+- ⚡ **Durability System**: 4-pip HUD display, damage from hard landings (>300px/s), shatter respawn
+- 📱 **Cross-Platform**: Desktop keyboard + mobile touch controls working perfectly
 - 🎯 **Physics**: Arcade physics with gravity, collision, and platform interaction
-- 📹 **Camera**: Smooth following camera with lerp
-- 🎨 **UI**: "Pot Odyssey" branded menu with animated pot logo
-- 🏗️ **Platforms**: Multiple test platforms for movement validation
+- 📹 **Camera**: Advanced following camera with world bounds and deadzone
+- 🎨 **UI**: "Pot Odyssey" branded menu with animated pot logo  
+- 🏗️ **Test Level**: Comprehensive multi-route climbing level for mechanic validation
 
 **Technical Implementation Status**: ✅ **Production Ready Foundation**
 
@@ -57,23 +60,27 @@
   - ✅ Ground detection and anti-infinite-jump system
   - ✅ Platform collision detection and response
   - ✅ Cross-platform input (keyboard: arrows/space, mobile: touch buttons)
-  - [ ] Variable jump mechanics (hold for higher jump)
-  - [ ] Coyote time implementation (~120ms)
-  - [ ] Jump buffering (~120ms)
-  - [ ] Wall slide and wall hop mechanics
 
-- [ ] **Resource Systems**
-  - Moisture meter implementation and visual display
-  - Durability system with crack visualization
-  - Resource drain mechanics (time, heat, impacts)
-  - Resource restoration systems
+- [x] **Advanced Movement Mechanics** ✅ **COMPLETE**
+  - ✅ Variable jump mechanics (hold spacebar for higher jumps with diminishing returns)
+  - ✅ Coyote time implementation (40ms grace period after leaving platforms)
+  - ✅ Jump buffering (180ms window for early jump inputs before landing)
+  - ✅ Wall slide mechanics (60px/s speed cap when holding toward wall while airborne)
+
+- [x] **Resource Systems** ✅ **COMPLETE**
+  - ✅ Moisture meter with diegetic visual ring around player (color-coded: green→yellow→red)
+  - ✅ Durability system with HUD pips visualization (4 brown circles, gray when empty)
+  - ✅ Moisture drain mechanics (5% every 10 seconds, respawn at 0%)
+  - ✅ Impact damage system (hard landings >300px/s after 300ms airtime reduce durability)
+  - ✅ Resource restoration via respawn (50% moisture, full durability)
 
 ### First Playable (Weeks 4-6)
-- [ ] **Basic Level System**
-  - Tilemap integration for level design
-  - Platform collision system
-  - Simple test level creation
-  - Collectible placement and pickup
+- [x] **Basic Level System** ✅ **COMPLETE**
+  - ✅ Expanded test level with multiple climbing routes (left tower, center zigzag, right mega tower)
+  - ✅ Platform collision system working perfectly
+  - ✅ Camera system with world bounds (2048x1024) and player following
+  - ✅ Safety systems (auto-respawn, invisible boundary walls)
+  - [ ] Collectible placement and pickup
 
 - [ ] **Core Abilities (First 2)**
   - Thornspike (ground pound) - breaks brittle blocks
@@ -108,10 +115,10 @@
 - **Target**: ✅ Completed ahead of schedule
 
 ### 🎮 Core Gameplay
-- **Status**: ✅ **FOUNDATION COMPLETE**
-- **Achievements**: Basic platformer with pot character, jumping, platforms
-- **Current**: Working player movement with proper jump state management
-- **Next**: Advanced movement mechanics (variable jump, coyote time, wall slide)
+- **Status**: ✅ **ADVANCED MECHANICS COMPLETE**
+- **Achievements**: Full-featured platformer with pot character, advanced movement, resource systems
+- **Current**: Variable jump, coyote time, jump buffering, wall slide, moisture/durability systems
+- **Next**: First abilities implementation (Thornspike, Glideleaf)
 
 ### 🎨 Content Creation
 - **Status**: ❌ **Not Started**

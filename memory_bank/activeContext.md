@@ -2,9 +2,9 @@
 
 ## What You're Working On Now
 
-**Current Phase**: Foundation Architecture Complete ✅  
-**Status**: Basic platformer foundation working with player movement  
-**Priority**: Implementing advanced movement mechanics and resource systems
+**Current Phase**: Advanced Movement & Resource Systems Complete ✅  
+**Status**: Full-featured platformer with advanced mechanics and resource systems  
+**Priority**: Beginning ability system implementation (Thornspike, Glideleaf)
 
 ### Immediate Focus
 1. **Project Initialization**
@@ -27,24 +27,32 @@
 
 ## Recent Changes
 
-**Current State**: Working Phaser 3 platformer foundation
+**Current State**: Advanced platformer with full movement mechanics and resource systems
 - ✅ Created comprehensive PRD
-- ✅ Established memory bank for project context
+- ✅ Established memory bank for project context  
 - ✅ **Completed**: Project initialization and basic platformer
-- ✅ Working player movement with keyboard + mobile controls
-- ✅ Physics system with gravity and collision
-- ✅ Camera following player
-- ✅ Scene management (Boot, Menu, Game)
-- 🚧 **Next**: Advanced movement mechanics (variable jump, coyote time, wall slide)
+- ✅ **Completed**: Advanced movement mechanics (variable jump, coyote time, jump buffering, wall slide)
+- ✅ **Completed**: Resource systems (moisture with diegetic visualization, durability with impact damage)
+- ✅ **Completed**: Enhanced test level with comprehensive platform layouts
+- ✅ Working cross-platform controls (keyboard + mobile touch)
+- ✅ Advanced physics system with collision and camera management
+- ✅ Scene management (Boot, Menu, Game) with proper asset loading
+- 🚧 **Next**: Core ability system implementation (Thornspike ground pound, Glideleaf gliding)
 
 ## Next Steps (Immediate Priorities)
 
-### Phase 1: Environment Setup (Current)
-1. **Initialize Node.js project** with package.json
-2. **Install Phaser 3** and development dependencies
-3. **Configure build system** (Vite/Webpack for development)
-4. **Create basic HTML entry point** for browser target
-5. **Set up development server** with hot reload
+### Phase 4: Core Abilities Implementation (Current)
+1. **Thornspike Ability** (Ground Pound)
+   - Implement downward slam attack
+   - Add ability to break brittle blocks/platforms
+   - Visual feedback and sound effects
+   - Cooldown system implementation
+
+2. **Glideleaf Ability** (Gliding)
+   - Reduced gravity while ability key held
+   - Horizontal movement control during glide
+   - Visual feedback (leaf particle effect)
+   - Stamina/duration limitations
 
 ### Phase 2: Core Foundation ✅ **COMPLETE**
 1. **Basic Scene Management** ✅
@@ -65,30 +73,39 @@
    - ⏸️ Save/load system structure (deferred to later phase)
    - ✅ Input management abstraction (unified keyboard/touch)
 
-### Phase 3: Advanced Movement Mechanics (Current Focus)
-1. **Enhanced Platforming** 🚧
+### Phase 3: Advanced Movement Mechanics ✅ **COMPLETE**
+1. **Enhanced Platforming** ✅
    - ✅ Single jump with proper state management (no infinite jumping)
-   - [ ] Variable jump implementation (hold for higher jump)
-   - [ ] Coyote time and jump buffering (~120ms each)
-   - [ ] Wall slide mechanics with reduced gravity
+   - ✅ Variable jump implementation (hold spacebar for higher jumps with diminishing returns)
+   - ✅ Coyote time (40ms) and jump buffering (180ms) for responsive controls
+   - ✅ Wall slide mechanics (60px/s speed cap when holding toward wall while airborne)
    - ✅ Robust collision detection and platform interaction
 
-2. **Resource System**
-   - [ ] Moisture meter implementation with visual display
-   - [ ] Durability system with crack visualization  
-   - [ ] Resource drain mechanics (time, heat, impacts)
-   - [ ] Visual feedback for both systems
+2. **Resource System** ✅
+   - ✅ Moisture meter with diegetic ring visualization around player (green→yellow→red)
+   - ✅ Durability system with HUD pip visualization (4 brown circles, gray when empty)
+   - ✅ Moisture drain mechanics (5% every 10 seconds, respawn at 0%)
+   - ✅ Impact damage system (hard landings >300px/s after 300ms airtime)
+   - ✅ Visual feedback with screen shake on damage and color-coded moisture ring
 
-### Phase 4: First Playable (Target: 4-6 weeks from start)
-1. **Basic Level**
-   - Simple test level with platforms
-   - Collectible placement
-   - Basic hazards
+3. **Enhanced Test Level** ✅
+   - ✅ Comprehensive climbing routes (left tower, center zigzag, right mega tower)
+   - ✅ Camera system with world bounds (2048x1024) and smooth following
+   - ✅ Safety systems (auto-respawn, invisible boundary walls)
+   - ✅ Multiple height platforms for damage testing (y=250, y=150, y=50)
 
-2. **Core Abilities**
-   - Thornspike (ground pound)
-   - Glideleaf (gliding)
-   - Basic ability system framework
+### Phase 4: Core Abilities (Current Focus)
+1. **Ability System Framework**
+   - Input handling for ability keys (Q, E)
+   - Cooldown management system
+   - Visual feedback framework
+   - Resource cost integration with moisture/durability
+
+2. **First Two Abilities**
+   - **Thornspike**: Ground pound attack, breaks brittle blocks
+   - **Glideleaf**: Gliding with reduced gravity and horizontal control
+   - Proper animation and particle effects
+   - Integration with existing movement system
 
 ## Development Approach
 
