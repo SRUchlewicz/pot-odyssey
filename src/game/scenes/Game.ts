@@ -64,9 +64,9 @@ export class Game extends Scene
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0x87CEEB); // Sky blue
 
-        // Set larger world bounds for test level
-        this.physics.world.setBounds(0, 0, 2048, 1024);
-        this.cameras.main.setBounds(0, 0, 2048, 1024);
+        // Set larger world bounds for horizontal test level
+        this.physics.world.setBounds(0, 0, 4500, 1024);
+        this.cameras.main.setBounds(0, 0, 4500, 1024);
 
         // Create platforms group
         this.platforms = this.physics.add.staticGroup();
@@ -79,65 +79,75 @@ export class Game extends Scene
         const leftWall = this.platforms.create(-50, 500, 'ground');
         leftWall.setScale(0.1, 20).refreshBody().setVisible(false); // Invisible left boundary
         
-        const rightWall = this.platforms.create(2098, 500, 'ground'); 
+        const rightWall = this.platforms.create(4548, 500, 'ground'); 
         rightWall.setScale(0.1, 20).refreshBody().setVisible(false); // Invisible right boundary
 
-        // ===== CLEAN PLAYABLE TEST LEVEL =====
+        // ===== HORIZONTAL MARIO-STYLE TEST LEVEL =====
         
-        // ===== MAIN PROGRESSION PATH =====
+        // ===== MAIN HORIZONTAL PROGRESSION PATH =====
         
-        // Starting area
+        // Starting area - flat ground
         this.platforms.create(200, 700, 'ground'); // Main spawn platform
         this.platforms.create(400, 700, 'ground'); // Starting walkway
+        this.platforms.create(600, 700, 'ground'); // Continue flat
         
-        // ===== SECTION 1: BASIC MOVEMENT (X: 400-700) =====
-        this.platforms.create(500, 600, 'ground'); // Simple jump down
-        this.platforms.create(650, 550, 'ground'); // Cross gap
+        // ===== SECTION 1: BASIC GAPS (X: 600-900) =====
+        // Simple horizontal gaps with moderate vertical variation
+        this.platforms.create(800, 650, 'ground'); // Small step down
+        this.platforms.create(1000, 600, 'ground'); // Another step down
+        this.platforms.create(1200, 650, 'ground'); // Step back up
         
-        // ===== SECTION 2: VARIABLE JUMP TEST (X: 700-1000) =====
-        this.platforms.create(750, 600, 'ground'); // Entry
-        this.platforms.create(850, 550, 'ground'); // Small jump (tap)
-        this.platforms.create(950, 450, 'ground'); // Big jump (hold)
+        // ===== SECTION 2: VARIABLE JUMP CHALLENGES (X: 1200-1600) =====
+        this.platforms.create(1400, 600, 'ground'); // Approach platform
+        this.platforms.create(1600, 550, 'ground'); // Medium gap (tap jump)
+        this.platforms.create(1800, 500, 'ground'); // Larger gap (hold jump)
+        this.platforms.create(2000, 550, 'ground'); // Landing platform
         
-        // ===== SECTION 3: COYOTE TIME TEST (X: 1000-1300) =====
-        this.platforms.create(1050, 500, 'ground'); // Approach
-        // 200px gap for coyote time
-        this.platforms.create(1250, 500, 'ground'); // Landing (needs coyote time)
+        // ===== SECTION 3: COYOTE TIME TEST (X: 2000-2400) =====
+        this.platforms.create(2200, 600, 'ground'); // Approach
+        // 180px gap for coyote time testing
+        this.platforms.create(2380, 600, 'ground'); // Landing (needs coyote time)
         
-        // ===== SECTION 4: WALL SLIDE TEST (X: 1300-1600) =====
-        this.platforms.create(1350, 600, 'ground'); // Approach
+        // ===== SECTION 4: WALL SLIDE AREA (X: 2400-2800) =====
+        this.platforms.create(2600, 650, 'ground'); // Approach platform
         
-        // Single tall wall for sliding
-        const mainWall = this.platforms.create(1450, 400, 'ground');
-        mainWall.setScale(0.2, 6).refreshBody(); // Tall narrow wall
+        // Horizontal wall for sliding (not vertical tower)
+        const horizontalWall = this.platforms.create(2700, 500, 'ground');
+        horizontalWall.setScale(0.2, 4).refreshBody(); // Medium height wall
         
-        this.platforms.create(1550, 300, 'ground'); // Landing after wall slide
+        this.platforms.create(2800, 600, 'ground'); // Landing after wall slide
         
-        // ===== SECTION 5: DAMAGE TEST TOWER (X: 1600-1800) =====
-        this.platforms.create(1650, 700, 'ground'); // Ground entry
-        this.platforms.create(1650, 500, 'ground'); // Medium height (safe)
-        this.platforms.create(1650, 250, 'ground'); // High fall (damage)
-        this.platforms.create(1650, 50, 'ground');  // Very high (major damage)
+        // ===== SECTION 5: DAMAGE TEST (X: 2800-3200) =====
+        // Horizontal damage test instead of vertical tower
+        this.platforms.create(3000, 700, 'ground'); // Ground level
+        this.platforms.create(3200, 600, 'ground'); // Medium fall (safe)
+        this.platforms.create(3400, 500, 'ground'); // Higher fall (damage)
+        this.platforms.create(3600, 400, 'ground'); // High fall (major damage)
         
-        // ===== SECTION 6: ENDURANCE RUN (X: 1800-2000) =====
-        // Simple platforms for moisture testing
-        this.platforms.create(1850, 500, 'ground');
-        this.platforms.create(1950, 450, 'ground');
+        // ===== SECTION 6: ENDURANCE RUN (X: 3600-4000) =====
+        // Horizontal endurance with moisture testing
+        this.platforms.create(3800, 500, 'ground');
+        this.platforms.create(4000, 450, 'ground');
+        this.platforms.create(4200, 500, 'ground');
         
-        // ===== ADVANCED OPTIONAL AREAS =====
-        
-        // High-skill combo area (upper level)
-        this.platforms.create(800, 300, 'ground');  // Jump up here from section 2
-        this.platforms.create(1000, 250, 'ground'); // Requires perfect variable jump
-        this.platforms.create(1200, 200, 'ground'); // Even higher challenge
+        // ===== OPTIONAL HIGH ROUTE (X: 1400-2800) =====
+        // Alternative higher path that rewards skilled jumping
+        this.platforms.create(1500, 400, 'ground'); // Jump up from main path
+        this.platforms.create(1700, 350, 'ground'); // High route platform
+        this.platforms.create(1900, 300, 'ground'); // Even higher
+        this.platforms.create(2100, 350, 'ground'); // Continue high route
+        this.platforms.create(2300, 400, 'ground'); // High route continues
+        this.platforms.create(2500, 350, 'ground'); // Final high platform
+        this.platforms.create(2700, 400, 'ground'); // Drop back to main path
         
         // ===== CLEAR SECTION LABELS =====
         this.add.text(200, 600, 'START', { fontSize: '32px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 });
-        this.add.text(850, 400, 'VARIABLE JUMP', { fontSize: '24px', color: '#ffff00', stroke: '#000000', strokeThickness: 2 });
-        this.add.text(1150, 450, 'COYOTE TIME', { fontSize: '24px', color: '#00ff00', stroke: '#000000', strokeThickness: 2 });
-        this.add.text(1400, 200, 'WALL SLIDE', { fontSize: '24px', color: '#ff8800', stroke: '#000000', strokeThickness: 2 });
-        this.add.text(1650, 150, 'DAMAGE TEST', { fontSize: '24px', color: '#ff0000', stroke: '#000000', strokeThickness: 2 });
-        this.add.text(1900, 400, 'MOISTURE RUN', { fontSize: '24px', color: '#0088ff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(1400, 500, 'VARIABLE JUMP', { fontSize: '24px', color: '#ffff00', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(2200, 500, 'COYOTE TIME', { fontSize: '24px', color: '#00ff00', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(2600, 400, 'WALL SLIDE', { fontSize: '24px', color: '#ff8800', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(3200, 300, 'DAMAGE TEST', { fontSize: '24px', color: '#ff0000', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(3800, 400, 'ENDURANCE', { fontSize: '24px', color: '#0088ff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(1700, 250, 'HIGH ROUTE', { fontSize: '20px', color: '#ff00ff', stroke: '#000000', strokeThickness: 2 });
         
         // Make sure all platforms are static
         this.platforms.children.entries.forEach((platform: any) => {
