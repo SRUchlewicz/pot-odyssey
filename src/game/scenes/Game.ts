@@ -12,15 +12,18 @@ export class Game extends Scene
     qKey: Phaser.Input.Keyboard.Key;
     eKey: Phaser.Input.Keyboard.Key;
     ctrlKey: Phaser.Input.Keyboard.Key;
+    fKey: Phaser.Input.Keyboard.Key; // Tanglevine ability key
     
     // Ability system state
     isGliding: boolean = false;
     isGroundPounding: boolean = false;
     isDashing: boolean = false;
+    isTanglevining: boolean = false; // Tanglevine state
     dashDirection: { x: number, y: number } = { x: 0, y: 0 };
     dashCount: number = 0; // Track number of dashes since last ground contact
     groundPoundCooldown: number = 0;
     dashCooldown: number = 0;
+    tanglevineCooldown: number = 0; // Tanglevine cooldown
     dashInvulnerabilityTimer: number = 0;
     readonly GROUND_POUND_COOLDOWN_MS: number = 1000; // 1 second cooldown
     readonly GROUND_POUND_VELOCITY: number = 1100; // Downward velocity for ground pound
@@ -32,6 +35,9 @@ export class Game extends Scene
     readonly GLIDE_GRAVITY_SCALE: number = 0.35; // Reduced gravity while gliding
     readonly GLIDE_MOISTURE_DRAIN: number = 0.5; // Moisture drain per second while gliding
     readonly NORMAL_GRAVITY_SCALE: number = 1.0; // Normal gravity scale
+    readonly TANGLEVINE_COOLDOWN_MS: number = 3000; // 3 second cooldown for Tanglevine
+    readonly TANGLEVINE_RANGE: number = 240; // 240px range as per PRD
+    readonly TANGLEVINE_BRIDGE_DURATION: number = 6000; // 6 seconds bridge duration as per PRD
     
     // Jump state management
     canJump: boolean = true;
@@ -74,6 +80,7 @@ export class Game extends Scene
     durabilityPips: Phaser.GameObjects.Graphics;
     hudGroup: Phaser.GameObjects.Group;
     debugText: Phaser.GameObjects.Text;
+    collectibleText: Phaser.GameObjects.Text;
     
     // Mobile controls
     leftButton: Phaser.GameObjects.Text;
@@ -82,6 +89,12 @@ export class Game extends Scene
     ability1Button: Phaser.GameObjects.Text; // Q key equivalent
     ability2Button: Phaser.GameObjects.Text; // E key equivalent
     groundPoundButton: Phaser.GameObjects.Text; // Ctrl key equivalent
+    tanglevineButton: Phaser.GameObjects.Text; // F key equivalent
+    
+    // Collectibles and progression
+    collectibles: Phaser.GameObjects.Group;
+    seedShards: number = 0;
+    speciesCollected: string[] = [];
 
     constructor ()
     {
@@ -93,12 +106,15 @@ export class Game extends Scene
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0x87CEEB); // Sky blue
 
-        // Set larger world bounds for horizontal test level
-        this.physics.world.setBounds(0, 0, 5500, 1024);
-        this.cameras.main.setBounds(0, 0, 5500, 1024);
+        // Set larger world bounds for extended test level
+        this.physics.world.setBounds(0, 0, 8000, 1024);
+        this.cameras.main.setBounds(0, 0, 8000, 1024);
 
         // Create platforms group
         this.platforms = this.physics.add.staticGroup();
+        
+        // Create collectibles group - use a regular group instead of physics group for static objects
+        this.collectibles = this.add.group();
 
         // Create extended ground platform (bottom safety net)
         const ground = this.platforms.create(1024, 950, 'ground'); // Lower and centered
@@ -108,7 +124,7 @@ export class Game extends Scene
         const leftWall = this.platforms.create(-50, 500, 'ground');
         leftWall.setScale(0.1, 20).refreshBody().setVisible(false); // Invisible left boundary
         
-        const rightWall = this.platforms.create(5548, 500, 'ground'); 
+        const rightWall = this.platforms.create(8048, 500, 'ground'); 
         rightWall.setScale(0.1, 20).refreshBody().setVisible(false); // Invisible right boundary
 
         // ===== HORIZONTAL MARIO-STYLE TEST LEVEL =====
@@ -170,11 +186,141 @@ export class Game extends Scene
         this.platforms.create(4600, 450, 'ground'); // Another gap for diagonal dash testing
         this.platforms.create(4800, 500, 'ground'); // Final landing platform
         
-        // ===== SECTION 7: ENDURANCE RUN (X: 4800-5200) =====
-        // Horizontal endurance with moisture testing
-        this.platforms.create(5000, 450, 'ground');
-        this.platforms.create(5200, 500, 'ground');
-        this.platforms.create(5400, 450, 'ground');
+        // ===== SECTION 7: TANGLEVINE PUZZLE AREA (X: 4800-5200) =====
+        // Bridge gaps and lever puzzles for Tanglevine testing
+        this.platforms.create(5000, 600, 'ground'); // Approach platform
+        
+        // Large gap that requires Tanglevine bridge
+        // Gap is 300px wide - Tanglevine range is 240px, so player needs to bridge
+        this.platforms.create(5300, 600, 'ground'); // Far side platform
+        
+        // Lever node for Tanglevine interaction (visual marker)
+        const leverNode = this.add.rectangle(5150, 550, 20, 20, 0x00ff00);
+        leverNode.setStrokeStyle(2, 0xffffff);
+        
+        // ===== SECTION 8: ABILITY SYNERGY CHALLENGE (X: 5200-5600) =====
+        // Multi-ability puzzle requiring combination of skills
+        this.platforms.create(5400, 700, 'ground'); // Starting platform
+        
+        // Add synergy instruction
+        this.add.text(5400, 650, 'SYNERGY CHALLENGE:', { 
+            fontSize: '18px', 
+            color: '#ff00ff',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        this.add.text(5400, 670, '1. Ground Pound (Ctrl) to break wall', { 
+            fontSize: '14px', 
+            color: '#ff8800',
+            stroke: '#000000',
+            strokeThickness: 1
+        });
+        this.add.text(5400, 685, '2. Dash (E) + Glide (Q) to reach high platform', { 
+            fontSize: '14px', 
+            color: '#00ffff',
+            stroke: '#000000',
+            strokeThickness: 1
+        });
+        
+        // Brittle block wall that requires ground pound to break through
+        const synergyBrittle1 = this.platforms.create(5600, 600, 'ground');
+        synergyBrittle1.setTint(0x8B4513);
+        synergyBrittle1.setData('brittle', true);
+        
+        const synergyBrittle2 = this.platforms.create(5600, 500, 'ground');
+        synergyBrittle2.setTint(0x8B4513);
+        synergyBrittle2.setData('brittle', true);
+        
+        // Add "BREAK ME" text on brittle blocks
+        this.add.text(5600, 580, 'BREAK ME!', { 
+            fontSize: '16px', 
+            color: '#ff8800',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        
+        // High platform requiring dash + glide combination
+        this.platforms.create(5800, 400, 'ground'); // Target platform
+        
+        // Add "REACH ME!" text on target platform
+        this.add.text(5800, 380, 'REACH ME!', { 
+            fontSize: '16px', 
+            color: '#00ffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        
+        // ===== SECTION 9: WIND TUNNEL GLIDING (X: 5600-6000) =====
+        // Extended gliding challenge with wind tunnel effect
+        this.platforms.create(6000, 650, 'ground'); // Wind tunnel entrance
+        
+        // Long gap with wind tunnel markers and instructions
+        for (let i = 0; i < 5; i++) {
+            const windMarker = this.add.rectangle(6200 + (i * 100), 500, 10, 200, 0x00ffff);
+            windMarker.setAlpha(0.4);
+            
+            // Add wind arrow indicators
+            const windArrow = this.add.text(6200 + (i * 100), 450, '→', { 
+                fontSize: '24px', 
+                color: '#00ffff',
+                stroke: '#000000',
+                strokeThickness: 2
+            });
+        }
+        
+        // Add wind tunnel instruction
+        this.add.text(6200, 400, 'WIND TUNNEL: Use Glideleaf (Q) to cross!', { 
+            fontSize: '16px', 
+            color: '#00ffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        
+        this.platforms.create(6700, 650, 'ground'); // Wind tunnel exit
+        
+        // ===== SECTION 10: DASH MASTERY COURSE (X: 6000-6400) =====
+        // Complex dash challenges with multiple directions
+        this.platforms.create(6200, 600, 'ground'); // Dash course start
+        
+        // Add dash course instruction
+        this.add.text(6200, 550, 'DASH MASTERY:', { 
+            fontSize: '18px', 
+            color: '#0088ff',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        this.add.text(6200, 570, 'Hold direction + E while airborne', { 
+            fontSize: '14px', 
+            color: '#00ffff',
+            stroke: '#000000',
+            strokeThickness: 1
+        });
+        
+        // Diagonal dash challenges
+        this.platforms.create(6400, 500, 'ground'); // Up-right dash target
+        this.add.text(6400, 480, '↑→', { 
+            fontSize: '20px', 
+            color: '#00ffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        
+        this.platforms.create(6600, 700, 'ground'); // Down-right dash target
+        this.add.text(6600, 680, '↓→', { 
+            fontSize: '20px', 
+            color: '#00ffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        
+        this.platforms.create(6800, 600, 'ground'); // Final landing
+        
+        // ===== SECTION 11: ENDURANCE & RESOURCE TEST (X: 6400-6800) =====
+        // Long horizontal section testing moisture management
+        this.platforms.create(7000, 550, 'ground');
+        this.platforms.create(7200, 600, 'ground');
+        this.platforms.create(7400, 550, 'ground');
+        this.platforms.create(7600, 600, 'ground');
         
         // ===== OPTIONAL HIGH ROUTE (X: 1400-2800) =====
         // Alternative higher path that rewards skilled jumping
@@ -186,6 +332,23 @@ export class Game extends Scene
         this.platforms.create(2500, 350, 'ground'); // Final high platform
         this.platforms.create(2700, 400, 'ground'); // Drop back to main path
         
+        // ===== ADD COLLECTIBLES THROUGHOUT LEVEL =====
+        // Seed Shards (economy currency)
+        this.createSeedShard(800, 550, 'SS1');
+        this.createSeedShard(1600, 450, 'SS2');
+        this.createSeedShard(3400, 400, 'SS3');
+        this.createSeedShard(4200, 450, 'SS4');
+        this.createSeedShard(5150, 500, 'SS5'); // Near Tanglevine puzzle
+        this.createSeedShard(5800, 300, 'SS6'); // High platform reward
+        this.createSeedShard(6400, 400, 'SS7'); // Dash course reward
+        
+        // Species collectibles (Herbarium items)
+        this.createSpecies(1200, 550, 'Dandelion', 'Common backyard flower');
+        this.createSpecies(2800, 350, 'Ivy', 'Climbing vine species');
+        this.createSpecies(3800, 200, 'Sunflower', 'Tall garden flower');
+        this.createSpecies(5300, 500, 'Moss', 'Ground cover species');
+        this.createSpecies(6700, 550, 'Fern', 'Shade-loving plant');
+        
         // ===== CLEAR SECTION LABELS =====
         this.add.text(200, 600, 'START', { fontSize: '32px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 });
         this.add.text(1400, 500, 'VARIABLE JUMP', { fontSize: '24px', color: '#ffff00', stroke: '#000000', strokeThickness: 2 });
@@ -193,13 +356,21 @@ export class Game extends Scene
         this.add.text(2600, 400, 'WALL SLIDE', { fontSize: '24px', color: '#ff8800', stroke: '#000000', strokeThickness: 2 });
         this.add.text(3200, 300, 'ABILITY TEST', { fontSize: '24px', color: '#ff00ff', stroke: '#000000', strokeThickness: 2 });
         this.add.text(4200, 500, 'DASH TEST', { fontSize: '24px', color: '#00ffff', stroke: '#000000', strokeThickness: 2 });
-        this.add.text(5200, 400, 'ENDURANCE', { fontSize: '24px', color: '#0088ff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(5000, 500, 'TANGLEVINE', { fontSize: '24px', color: '#00ff00', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(5400, 600, 'SYNERGY', { fontSize: '24px', color: '#ff00ff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(6000, 550, 'WIND TUNNEL', { fontSize: '24px', color: '#00ffff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(6200, 500, 'DASH MASTERY', { fontSize: '24px', color: '#0088ff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(7000, 500, 'ENDURANCE', { fontSize: '24px', color: '#ff8800', stroke: '#000000', strokeThickness: 2 });
         this.add.text(1700, 250, 'HIGH ROUTE', { fontSize: '20px', color: '#ff00ff', stroke: '#000000', strokeThickness: 2 });
         
         // Add ability instructions
-        this.add.text(200, 200, 'CONTROLS: Q=Glide, E=Dash, Ctrl=Ground Pound', { fontSize: '16px', color: '#ffffff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(200, 200, 'CONTROLS: Q=Glide, E=Dash, Ctrl=Ground Pound, F=Tanglevine', { fontSize: '16px', color: '#ffffff', stroke: '#000000', strokeThickness: 2 });
         this.add.text(200, 220, 'Look for brown blocks to break with ground pound!', { fontSize: '14px', color: '#ffff00', stroke: '#000000', strokeThickness: 1 });
         this.add.text(200, 240, 'Dash: Hold direction + E while airborne (1 per air time, costs 5% moisture)', { fontSize: '14px', color: '#00ffff', stroke: '#000000', strokeThickness: 1 });
+        this.add.text(200, 260, 'Tanglevine: F key creates bridges and pulls levers (costs 10% moisture)', { fontSize: '14px', color: '#00ff00', stroke: '#000000', strokeThickness: 1 });
+        this.add.text(200, 280, 'Collect Seed Shards (blue) and Species (green) for progression!', { fontSize: '14px', color: '#ffff00', stroke: '#000000', strokeThickness: 1 });
+        this.add.text(200, 300, 'Touch the floating platforms with SHARD/SPECIES labels to collect them!', { fontSize: '14px', color: '#ffff00', stroke: '#000000', strokeThickness: 1 });
+        this.add.text(200, 320, 'Look for blue SHARD and green SPECIES labels floating above platforms!', { fontSize: '14px', color: '#ffff00', stroke: '#000000', strokeThickness: 1 });
         
         // Make sure all platforms are static
         this.platforms.children.entries.forEach((platform: any) => {
@@ -213,6 +384,10 @@ export class Game extends Scene
 
         // Player physics
         this.physics.add.collider(this.player, this.platforms, this.handlePlatformCollision, undefined, this);
+        
+        // Collectible collision detection
+        // Set up collision detection for collectibles - we'll handle this manually in update()
+        // this.physics.add.overlap(this.player, this.collectibles, this.handleCollectibleCollision, undefined, this);
 
         // Camera follows player with bounds
         this.cameras.main.startFollow(this.player);
@@ -227,6 +402,7 @@ export class Game extends Scene
         this.qKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.ctrlKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
+        this.fKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.F); // Initialize Tanglevine key
 
         // Camera follows player
         this.camera.startFollow(this.player);
@@ -242,6 +418,14 @@ export class Game extends Scene
         this.debugText = this.add.text(50, 120, '', { 
             fontSize: '16px', 
             color: '#ffffff', 
+            stroke: '#000000', 
+            strokeThickness: 2 
+        }).setScrollFactor(0);
+        
+        // Create collectible counter text
+        this.collectibleText = this.add.text(50, 200, '', { 
+            fontSize: '14px', 
+            color: '#ffff00', 
             stroke: '#000000', 
             strokeThickness: 2 
         }).setScrollFactor(0);
@@ -396,6 +580,19 @@ export class Game extends Scene
             `Velocity: (${debugBody.velocity.x.toFixed(0)}, ${debugBody.velocity.y.toFixed(0)})`
         ]);
         
+        // Manual collision detection for collectibles (since we're using regular groups now)
+        this.collectibles.getChildren().forEach((collectible: any) => {
+            if (collectible.active && this.player.active) {
+                const distance = Phaser.Math.Distance.Between(
+                    this.player.x, this.player.y,
+                    collectible.x, collectible.y
+                );
+                if (distance < 30) { // Collision radius
+                    this.handleCollectibleCollision(this.player, collectible);
+                }
+            }
+        });
+        
         // Respawn if player falls off the world
         if (this.player.y > 1000) {
             this.player.setPosition(200, 650); // Reset to main starting platform
@@ -416,7 +613,8 @@ export class Game extends Scene
             jumpPressed: false,
             ability1Pressed: false,
             ability2Pressed: false,
-            groundPoundPressed: false
+            groundPoundPressed: false,
+            tanglevinePressed: false
         };
         
         // Update cooldowns
@@ -428,6 +626,9 @@ export class Game extends Scene
         }
         if (this.dashInvulnerabilityTimer > 0) {
             this.dashInvulnerabilityTimer -= this.game.loop.delta;
+        }
+        if (this.tanglevineCooldown > 0) {
+            this.tanglevineCooldown -= this.game.loop.delta;
         }
         
         // Thornspike (Ground Pound) - Ctrl key or mobile button
@@ -559,6 +760,88 @@ export class Game extends Scene
         if (!this.isDashing && this.player.tint !== 0xffffff) {
             this.player.clearTint();
         }
+        
+        // Tanglevine (Utility/Puzzle Solving) - F key or mobile button
+        const tanglevineInput = this.fKey.isDown || mobileInput.tanglevinePressed;
+        const canTanglevine = !this.isTanglevining && this.tanglevineCooldown <= 0 && this.moisture >= 10; // 10% moisture cost
+        
+        if (tanglevineInput && canTanglevine) {
+            // Start Tanglevine ability
+            this.isTanglevining = true;
+            this.tanglevineCooldown = this.TANGLEVINE_COOLDOWN_MS;
+            
+            // Consume moisture
+            this.moisture -= 10;
+            if (this.moisture < 0) this.moisture = 0;
+            
+            // Visual feedback
+            this.cameras.main.shake(200, 0.02);
+            this.player.setTint(0x00ff00); // Green tint for vine
+            
+            // Create vine projectile with directional input (like dash)
+            const vineStartX = this.player.x;
+            const vineStartY = this.player.y;
+            
+            // Get directional input for Tanglevine
+            const leftPressed = this.cursors.left.isDown || mobileInput.leftPressed;
+            const rightPressed = this.cursors.right.isDown || mobileInput.rightPressed;
+            const upPressed = this.cursors.up.isDown;
+            const downPressed = this.cursors.down.isDown;
+            
+            let vineX = 0;
+            let vineY = 0;
+            
+            // Determine vine direction
+            if (upPressed) vineY = -1;
+            if (downPressed) vineY = 1;
+            if (leftPressed) vineX = -1;
+            if (rightPressed) vineX = 1;
+            
+            // If no direction pressed, use facing direction
+            if (vineX === 0 && vineY === 0) {
+                vineX = this.player.flipX ? -1 : 1;
+                vineY = 0;
+            }
+            
+            // Normalize for diagonal movement
+            if (vineX !== 0 && vineY !== 0) {
+                const magnitude = Math.sqrt(vineX * vineX + vineY * vineY);
+                vineX = vineX / magnitude;
+                vineY = vineY / magnitude;
+            }
+            
+            const vineEndX = vineStartX + (vineX * this.TANGLEVINE_RANGE);
+            const vineEndY = vineStartY + (vineY * this.TANGLEVINE_RANGE);
+            
+            // Draw vine line
+            const vineGraphics = this.add.graphics();
+            vineGraphics.lineStyle(4, 0x00ff00, 1);
+            vineGraphics.lineBetween(vineStartX, vineStartY, vineEndX, vineEndY);
+            
+            // Check for targets in range (lever nodes, bridge points, etc.)
+            // For now, just create a temporary bridge platform
+            const bridgePlatform = this.platforms.create(vineEndX - 32, vineEndY - 16, 'platform') as Phaser.Physics.Arcade.Sprite;
+            bridgePlatform.setScale(0.5, 0.25);
+            bridgePlatform.setTint(0x00ff00);
+            
+            // Remove vine and bridge after duration
+            this.time.delayedCall(1000, () => {
+                vineGraphics.destroy();
+                this.player.clearTint();
+                this.isTanglevining = false;
+                console.log("Tanglevine vine retracted!");
+            });
+            
+            // Remove bridge after bridge duration
+            this.time.delayedCall(this.TANGLEVINE_BRIDGE_DURATION, () => {
+                bridgePlatform.destroy();
+                console.log("Tanglevine bridge decayed!");
+            });
+            
+            console.log(`Tanglevine activated! Direction: (${vineX}, ${vineY}), Range: ${this.TANGLEVINE_RANGE}px`);
+            console.log(`Input state: left=${leftPressed}, right=${rightPressed}, up=${upPressed}, down=${downPressed}`);
+            console.log(`Player facing: ${this.player.flipX ? 'left' : 'right'}`);
+        }
     }
 
     createMobileControls ()
@@ -623,6 +906,16 @@ export class Game extends Scene
         .setInteractive()
         .setScrollFactor(0);
 
+        // Tanglevine button (F key equivalent) - repositioned to fit on screen
+        this.tanglevineButton = this.add.text(720, 620, 'F', {
+            fontSize: '32px',
+            color: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5)
+        .setInteractive()
+        .setScrollFactor(0);
+
         // Initialize mobile input state
         const mobileInput = { 
             leftPressed: false, 
@@ -630,7 +923,8 @@ export class Game extends Scene
             jumpPressed: false,
             ability1Pressed: false,
             ability2Pressed: false,
-            groundPoundPressed: false
+            groundPoundPressed: false,
+            tanglevinePressed: false
         };
         this.registry.set('mobileInput', mobileInput);
 
@@ -715,6 +1009,20 @@ export class Game extends Scene
         });
         this.groundPoundButton.on('pointerout', () => {
             mobileInput.groundPoundPressed = false;
+            this.registry.set('mobileInput', mobileInput);
+        });
+
+        // Tanglevine button events
+        this.tanglevineButton.on('pointerdown', () => {
+            mobileInput.tanglevinePressed = true;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.tanglevineButton.on('pointerup', () => {
+            mobileInput.tanglevinePressed = false;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.tanglevineButton.on('pointerout', () => {
+            mobileInput.tanglevinePressed = false;
             this.registry.set('mobileInput', mobileInput);
         });
     }
@@ -845,6 +1153,41 @@ export class Game extends Scene
             this.durabilityPips.fillStyle(0xff00ff, 0.8);
             this.durabilityPips.fillCircle(abilityX + 40, abilityY, 8);
         }
+        
+        // Tanglevine cooldown indicator
+        if (this.tanglevineCooldown > 0) {
+            this.durabilityPips.fillStyle(0xff0000, 0.8);
+            this.durabilityPips.fillCircle(abilityX + 60, abilityY, 6);
+        } else if (this.moisture >= 10) {
+            this.durabilityPips.fillStyle(0x00ff00, 0.8);
+            this.durabilityPips.fillCircle(abilityX + 60, abilityY, 6);
+        } else {
+            this.durabilityPips.fillStyle(0x666666, 0.8);
+            this.durabilityPips.fillCircle(abilityX + 60, abilityY, 6);
+        }
+        
+        // Tanglevine active indicator
+        if (this.isTanglevining) {
+            this.durabilityPips.fillStyle(0x00ff00, 0.8);
+            this.durabilityPips.fillCircle(abilityX + 60, abilityY, 8);
+        }
+        
+        // Progress display (using rectangles for visual indicators)
+        const progressX = 50;
+        const progressY = 150;
+        
+        // Seed Shards counter background
+        this.durabilityPips.fillStyle(0x0088ff, 0.8);
+        this.durabilityPips.fillRect(progressX, progressY, 120, 20);
+        
+        // Species counter background
+        this.durabilityPips.fillStyle(0x00ff00, 0.8);
+        this.durabilityPips.fillRect(progressX, progressY + 25, 120, 20);
+        
+        // Update collectible text
+        if (this.collectibleText) {
+            this.collectibleText.setText(`Seed Shards: ${this.seedShards}/7 | Species: ${this.speciesCollected.length}/5`);
+        }
     }
     
     checkImpactDamage ()
@@ -928,5 +1271,161 @@ export class Game extends Scene
         this.moisture = 50;
         this.player.setPosition(200, 650); // Reset to main starting platform
         console.log("Pot dried out! Respawning with 50% moisture.");
+    }
+    
+    // ===== COLLECTIBLE CREATION METHODS =====
+    
+    createSeedShard(x: number, y: number, id: string)
+    {
+        // Create as a static physics object instead of dynamic
+        const shard = this.physics.add.staticImage(x, y, 'ground') as Phaser.Physics.Arcade.Image;
+        shard.setScale(0.5, 0.5); // Larger scale for visibility
+        shard.setTint(0x0088ff); // Blue tint for Seed Shards
+        shard.setData('type', 'seedShard');
+        shard.setData('id', id);
+        
+        // Add to collectibles group for collision detection
+        this.collectibles.add(shard);
+        
+        console.log(`Created Seed Shard ${id} at (${x}, ${y})`);
+        
+        // Add text label to make it more obvious
+        const label = this.add.text(x, y - 25, 'SHARD', { 
+            fontSize: '12px', 
+            color: '#0088ff',
+            stroke: '#000000',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+        
+        // Add a simple pulsing effect to the label only
+        this.tweens.add({
+            targets: label,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Add a glow effect around the collectible
+        const glow = this.add.graphics();
+        glow.lineStyle(3, 0x0088ff, 0.6);
+        glow.strokeCircle(x, y, 25);
+        glow.setDepth(-1); // Behind the collectible
+    }
+    
+    createSpecies(x: number, y: number, name: string, description: string)
+    {
+        // Create as a static physics object instead of dynamic
+        const species = this.physics.add.staticImage(x, y, 'ground') as Phaser.Physics.Arcade.Image;
+        species.setScale(0.6, 0.6); // Larger scale for visibility
+        species.setTint(0x00ff00); // Green tint for Species
+        species.setData('type', 'species');
+        species.setData('name', name);
+        species.setData('description', description);
+        
+        // Add to collectibles group for collision detection
+        this.collectibles.add(species);
+        
+        console.log(`Created Species ${name} at (${x}, ${y})`);
+        
+        // Add text label to make it more obvious
+        const label = this.add.text(x, y - 30, 'SPECIES', { 
+            fontSize: '12px', 
+            color: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+        
+        // Add a simple pulsing effect to the label only
+        this.tweens.add({
+            targets: label,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Add a glow effect around the collectible
+        const glow = this.add.graphics();
+        glow.lineStyle(3, 0x00ff00, 0.6);
+        glow.strokeCircle(x, y, 30);
+        glow.setDepth(-1); // Behind the collectible
+    }
+    
+    // ===== COLLECTIBLE COLLISION HANDLING =====
+    
+    handleCollectibleCollision(player: any, collectible: any)
+    {
+        console.log("Collectible collision detected!");
+        const type = collectible.getData('type');
+        console.log(`Collectible type: ${type}`);
+        
+        if (type === 'seedShard') {
+            const id = collectible.getData('id');
+            this.seedShards++;
+            console.log(`Collected Seed Shard ${id}! Total: ${this.seedShards}`);
+            
+            // Visual feedback
+            this.cameras.main.shake(100, 0.01);
+            
+            // Add collection effect
+            const collectEffect = this.add.text(collectible.x, collectible.y - 20, '+1 SHARD', { 
+                fontSize: '16px', 
+                color: '#0088ff',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+            
+            // Animate the collection text
+            this.tweens.add({
+                targets: collectEffect,
+                y: collectible.y - 50,
+                alpha: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => collectEffect.destroy()
+            });
+            
+            // Destroy the collectible and all its associated visual elements
+            collectible.destroy();
+            
+        } else if (type === 'species') {
+            const name = collectible.getData('name');
+            const description = collectible.getData('description');
+            
+            if (!this.speciesCollected.includes(name)) {
+                this.speciesCollected.push(name);
+                console.log(`Discovered new species: ${name} - ${description}`);
+                console.log(`Species collected: ${this.speciesCollected.length}/5`);
+                
+                // Visual feedback
+                this.cameras.main.shake(150, 0.02);
+                
+                // Add collection effect
+                const collectEffect = this.add.text(collectible.x, collectible.y - 20, `+1 ${name}`, { 
+                    fontSize: '16px', 
+                    color: '#00ff00',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                }).setOrigin(0.5);
+                
+                // Animate the collection text
+                this.tweens.add({
+                    targets: collectEffect,
+                    y: collectible.y - 50,
+                    alpha: 0,
+                    duration: 1000,
+                    ease: 'Power2',
+                    onComplete: () => collectEffect.destroy()
+                });
+                
+                // Destroy the collectible and all its associated visual elements
+                collectible.destroy();
+            }
+        }
     }
 }
