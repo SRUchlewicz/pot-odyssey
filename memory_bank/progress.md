@@ -11,7 +11,7 @@
 - 🧗 **Wall Sliding**: Slide down walls at reduced speed (60px/s) when holding toward wall
 - 💧 **Moisture System**: Diegetic ring visualization, drains 5% every 10s, respawn at 0%
 - ⚡ **Durability System**: 4-pip HUD display, damage from hard landings (>300px/s), shatter respawn
-- 🚀 **Core Abilities**: Thornspike (ground pound) and Glideleaf (gliding) fully implemented
+- 🚀 **Core Abilities**: Thornspike (ground pound), Glideleaf (gliding), and Bloom Dash (8-way burst) fully implemented
 - 📱 **Cross-Platform**: Desktop keyboard + mobile touch controls working perfectly
 - 🎯 **Physics**: Arcade physics with gravity, collision, and platform interaction
 - 📹 **Camera**: Advanced following camera with world bounds and deadzone
@@ -55,13 +55,30 @@
   - ✅ Visual feedback (cyan HUD indicator, console logs)
   - ✅ Integration with existing movement system
 
+- [x] **Bloom Dash (8-Way Burst Movement)**
+  - ✅ 8-way directional burst movement (cardinal + diagonal)
+  - ✅ Vector normalization for consistent diagonal movement speed
+  - ✅ 1 dash per air time limit with ground reset
+  - ✅ 5% moisture cost per dash
+  - ✅ 1-second cooldown system
+  - ✅ Brief invulnerability (100ms) during dash
+  - ✅ Visual feedback (cyan tint, screen shake)
+  - ✅ Cross-platform controls (E key + mobile button)
+  - ✅ Direction-based velocity balancing for perceived power equality
+
 ### Next Development Options
 
-#### Option A: Additional Abilities
-- [ ] **Bloom Dash** (8-way burst movement)
-  - Press E while airborne for directional burst
-  - Brief invulnerability and short cooldown
-  - Small moisture cost
+#### Option A: Additional Abilities ✅ **COMPLETE**
+- [x] **Bloom Dash** (8-way burst movement) ✅ **COMPLETE**
+  - ✅ 8-way directional burst movement (up, down, left, right, diagonals)
+  - ✅ Vector normalization for consistent diagonal movement speed
+  - ✅ 1 dash per air time limit with ground reset
+  - ✅ 5% moisture cost per dash
+  - ✅ 1-second cooldown system
+  - ✅ Brief invulnerability (100ms) during dash
+  - ✅ Visual feedback (cyan tint, screen shake)
+  - ✅ Cross-platform controls (E key + mobile button)
+  - ✅ Direction-based velocity balancing (upward: 500px/s, horizontal: 800px/s, downward: 800px/s)
 
 - [ ] **Tanglevine** (utility/puzzle solving)
   - Fire vine to pull levers or create bridges
@@ -104,10 +121,10 @@
 - **Target**: ✅ Completed ahead of schedule
 
 ### 🎮 Core Gameplay
-- **Status**: ✅ **CORE ABILITIES COMPLETE**
-- **Achievements**: Full-featured platformer with pot character, advanced movement, resource systems, and working abilities
-- **Current**: Variable jump, coyote time, jump buffering, wall slide, moisture/durability systems, Thornspike ground pound, Glideleaf gliding
-- **Next**: Choose next ability or content expansion
+- **Status**: ✅ **ALL CORE ABILITIES COMPLETE**
+- **Achievements**: Full-featured platformer with pot character, advanced movement, resource systems, and complete ability suite
+- **Current**: Variable jump, coyote time, jump buffering, wall slide, moisture/durability systems, Thornspike ground pound, Glideleaf gliding, Bloom Dash burst movement
+- **Next**: Choose next ability (Tanglevine) or content expansion
 
 ### 🎨 Content Creation
 - **Status**: 🚧 **In Progress**
@@ -162,7 +179,12 @@
 - **Actual**: Complete ability system with cross-platform controls
 - **Blockers**: None
 
-**Sprint 4**: Next development priority (Choose One)
-- **Planned**: Additional abilities, content expansion, or technical systems
+**Sprint 4**: Bloom Dash implementation ✅
+- **Planned**: 8-way burst movement ability
+- **Actual**: Complete Bloom Dash with vector normalization, direction balancing, and cross-platform controls
+- **Blockers**: None
+
+**Sprint 5**: Next development priority (Choose One)
+- **Planned**: Tanglevine ability, content expansion, or technical systems
 - **Actual**: TBD
 - **Blockers**: None

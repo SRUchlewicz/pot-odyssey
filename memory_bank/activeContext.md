@@ -2,27 +2,28 @@
 
 ## What You're Working On Now
 
-**Current Phase**: Core Abilities Implementation Complete ✅  
-**Status**: Full-featured platformer with advanced mechanics, resource systems, and working abilities  
-**Priority**: Next ability implementation or content expansion
+**Current Phase**: All Core Abilities Complete ✅  
+**Status**: Full-featured platformer with advanced mechanics, resource systems, and complete ability suite  
+**Priority**: Next development phase (content expansion or technical systems)
 
 ### Immediate Focus
 1. **Core Abilities System** ✅ **COMPLETE**
    - ✅ Thornspike (Ground Pound) - breaks brittle blocks with Ctrl key/mobile down arrow
    - ✅ Glideleaf (Gliding) - reduces fall speed with Q key/mobile Q button
+   - ✅ **Bloom Dash** (8-way burst movement) - directional burst with E key/mobile button
    - ✅ Ability system framework with cooldowns and resource costs
    - ✅ Cross-platform controls (desktop + mobile)
    - ✅ Visual feedback (HUD indicators, console logs, screen shake)
 
 2. **Next Development Options**
-   - **Option A**: Implement next ability (Bloom Dash, Tanglevine, etc.)
-   - **Option B**: Expand test level with more ability challenges
-   - **Option C**: Add collectibles and progression systems
-   - **Option D**: Implement save/load system
+   - **Option A**: Implement Tanglevine ability (utility/puzzle solving)
+   - **Option B**: Expand test level with more ability challenges and collectibles
+   - **Option C**: Add progression systems (Herbarium, cosmetics, loadouts)
+   - **Option D**: Implement technical systems (save/load, performance optimization)
 
 ## Recent Changes
 
-**Current State**: Advanced platformer with full movement mechanics, resource systems, and working abilities
+**Current State**: Advanced platformer with full movement mechanics, resource systems, and complete ability suite
 - ✅ Created comprehensive PRD
 - ✅ Established memory bank for project context  
 - ✅ **Completed**: Project initialization and basic platformer
@@ -30,20 +31,16 @@
 - ✅ **Completed**: Resource systems (moisture with diegetic visualization, durability with impact damage)
 - ✅ **Completed**: Enhanced test level with comprehensive platform layouts
 - ✅ **Completed**: Core abilities system (Thornspike ground pound, Glideleaf gliding)
+- ✅ **Completed**: Bloom Dash (8-way burst movement with vector normalization and direction balancing)
 - ✅ Working cross-platform controls (keyboard + mobile touch)
 - ✅ Advanced physics system with collision and camera management
 - ✅ Scene management (Boot, Menu, Game) with proper asset loading
-- 🚧 **Next**: Choose next development priority
+- 🚧 **Next**: Choose next development phase (content expansion or technical systems)
 
 ## Next Steps (Choose One)
 
 ### Option A: Next Ability Implementation
-1. **Bloom Dash** (8-way burst movement)
-   - Press E while airborne for directional burst
-   - Brief invulnerability and short cooldown
-   - Small moisture cost
-
-2. **Tanglevine** (utility/puzzle solving)
+1. **Tanglevine** (utility/puzzle solving)
    - Fire vine to pull levers or create bridges
    - Range-based targeting system
    - Cooldown management

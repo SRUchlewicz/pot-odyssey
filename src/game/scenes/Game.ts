@@ -16,9 +16,19 @@ export class Game extends Scene
     // Ability system state
     isGliding: boolean = false;
     isGroundPounding: boolean = false;
+    isDashing: boolean = false;
+    dashDirection: { x: number, y: number } = { x: 0, y: 0 };
+    dashCount: number = 0; // Track number of dashes since last ground contact
     groundPoundCooldown: number = 0;
+    dashCooldown: number = 0;
+    dashInvulnerabilityTimer: number = 0;
     readonly GROUND_POUND_COOLDOWN_MS: number = 1000; // 1 second cooldown
     readonly GROUND_POUND_VELOCITY: number = 1100; // Downward velocity for ground pound
+    readonly DASH_COOLDOWN_MS: number = 1000; // 1 second cooldown for dash
+    readonly DASH_DURATION_MS: number = 150; // 0.15 seconds dash duration
+    readonly DASH_DISTANCE: number = 180; // 180px dash distance
+    readonly DASH_INVULNERABILITY_MS: number = 100; // 0.1 seconds invulnerability
+    readonly DASH_MOISTURE_COST: number = 5; // 5% moisture cost per dash
     readonly GLIDE_GRAVITY_SCALE: number = 0.35; // Reduced gravity while gliding
     readonly GLIDE_MOISTURE_DRAIN: number = 0.5; // Moisture drain per second while gliding
     readonly NORMAL_GRAVITY_SCALE: number = 1.0; // Normal gravity scale
@@ -63,6 +73,7 @@ export class Game extends Scene
     moistureBar: Phaser.GameObjects.Graphics;
     durabilityPips: Phaser.GameObjects.Graphics;
     hudGroup: Phaser.GameObjects.Group;
+    debugText: Phaser.GameObjects.Text;
     
     // Mobile controls
     leftButton: Phaser.GameObjects.Text;
@@ -83,8 +94,8 @@ export class Game extends Scene
         this.camera.setBackgroundColor(0x87CEEB); // Sky blue
 
         // Set larger world bounds for horizontal test level
-        this.physics.world.setBounds(0, 0, 4500, 1024);
-        this.cameras.main.setBounds(0, 0, 4500, 1024);
+        this.physics.world.setBounds(0, 0, 5500, 1024);
+        this.cameras.main.setBounds(0, 0, 5500, 1024);
 
         // Create platforms group
         this.platforms = this.physics.add.staticGroup();
@@ -97,7 +108,7 @@ export class Game extends Scene
         const leftWall = this.platforms.create(-50, 500, 'ground');
         leftWall.setScale(0.1, 20).refreshBody().setVisible(false); // Invisible left boundary
         
-        const rightWall = this.platforms.create(4548, 500, 'ground'); 
+        const rightWall = this.platforms.create(5548, 500, 'ground'); 
         rightWall.setScale(0.1, 20).refreshBody().setVisible(false); // Invisible right boundary
 
         // ===== HORIZONTAL MARIO-STYLE TEST LEVEL =====
@@ -151,11 +162,19 @@ export class Game extends Scene
         
         this.platforms.create(3800, 300, 'ground'); // Landing platform after breaking blocks
         
-        // ===== SECTION 6: ENDURANCE RUN (X: 3600-4000) =====
+        // ===== SECTION 6: DASH TESTING AREA (X: 3800-4200) =====
+        // Platforms with gaps designed for dash testing
+        this.platforms.create(4000, 600, 'ground'); // Approach platform
+        this.platforms.create(4200, 550, 'ground'); // Gap that requires dash to cross
+        this.platforms.create(4400, 500, 'ground'); // Landing platform
+        this.platforms.create(4600, 450, 'ground'); // Another gap for diagonal dash testing
+        this.platforms.create(4800, 500, 'ground'); // Final landing platform
+        
+        // ===== SECTION 7: ENDURANCE RUN (X: 4800-5200) =====
         // Horizontal endurance with moisture testing
-        this.platforms.create(3800, 500, 'ground');
-        this.platforms.create(4000, 450, 'ground');
-        this.platforms.create(4200, 500, 'ground');
+        this.platforms.create(5000, 450, 'ground');
+        this.platforms.create(5200, 500, 'ground');
+        this.platforms.create(5400, 450, 'ground');
         
         // ===== OPTIONAL HIGH ROUTE (X: 1400-2800) =====
         // Alternative higher path that rewards skilled jumping
@@ -173,12 +192,14 @@ export class Game extends Scene
         this.add.text(2200, 500, 'COYOTE TIME', { fontSize: '24px', color: '#00ff00', stroke: '#000000', strokeThickness: 2 });
         this.add.text(2600, 400, 'WALL SLIDE', { fontSize: '24px', color: '#ff8800', stroke: '#000000', strokeThickness: 2 });
         this.add.text(3200, 300, 'ABILITY TEST', { fontSize: '24px', color: '#ff00ff', stroke: '#000000', strokeThickness: 2 });
-        this.add.text(3800, 400, 'ENDURANCE', { fontSize: '24px', color: '#0088ff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(4200, 500, 'DASH TEST', { fontSize: '24px', color: '#00ffff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(5200, 400, 'ENDURANCE', { fontSize: '24px', color: '#0088ff', stroke: '#000000', strokeThickness: 2 });
         this.add.text(1700, 250, 'HIGH ROUTE', { fontSize: '20px', color: '#ff00ff', stroke: '#000000', strokeThickness: 2 });
         
         // Add ability instructions
-        this.add.text(200, 200, 'CONTROLS: Q=Glide, Ctrl=Ground Pound', { fontSize: '16px', color: '#ffffff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(200, 200, 'CONTROLS: Q=Glide, E=Dash, Ctrl=Ground Pound', { fontSize: '16px', color: '#ffffff', stroke: '#000000', strokeThickness: 2 });
         this.add.text(200, 220, 'Look for brown blocks to break with ground pound!', { fontSize: '14px', color: '#ffff00', stroke: '#000000', strokeThickness: 1 });
+        this.add.text(200, 240, 'Dash: Hold direction + E while airborne (1 per air time, costs 5% moisture)', { fontSize: '14px', color: '#00ffff', stroke: '#000000', strokeThickness: 1 });
         
         // Make sure all platforms are static
         this.platforms.children.entries.forEach((platform: any) => {
@@ -216,6 +237,14 @@ export class Game extends Scene
         
         // Create HUD elements
         this.createHUD();
+        
+        // Create debug text
+        this.debugText = this.add.text(50, 120, '', { 
+            fontSize: '16px', 
+            color: '#ffffff', 
+            stroke: '#000000', 
+            strokeThickness: 2 
+        }).setScrollFactor(0);
     }
 
     update ()
@@ -267,6 +296,7 @@ export class Game extends Scene
         if (isOnGround) {
             this.canJump = true;
             this.coyoteTimer = 0; // Reset coyote timer when on ground
+            this.dashCount = 0; // Reset dash count when on ground
             this.wasOnGround = true;
         } else if (this.wasOnGround && !isOnGround) {
             // Just left the ground - start coyote timer
@@ -328,8 +358,8 @@ export class Game extends Scene
             // Don't apply horizontal movement when wall sliding
         }
         
-        // Regular movement (only when not wall sliding)
-        if (!this.isWallSliding) {
+        // Regular movement (only when not wall sliding and not dashing)
+        if (!this.isWallSliding && !this.isDashing) {
             if (leftInput) {
                 this.player.setVelocityX(-160);
             } else if (rightInput) {
@@ -337,6 +367,9 @@ export class Game extends Scene
             } else {
                 this.player.setVelocityX(0);
             }
+        } else if (this.isDashing) {
+            // During dash, prevent any movement system interference
+            // The dash velocity is already set and should not be modified
         }
         
         // Update ability systems
@@ -346,6 +379,22 @@ export class Game extends Scene
         this.updateResources();
         this.checkImpactDamage();
         this.updateHUD();
+        
+        // Update debug text
+        const debugBody = this.player.body as Phaser.Physics.Arcade.Body;
+        const debugOnGround = debugBody.touching.down && debugBody.velocity.y >= -10;
+        const dashReady = !debugOnGround && this.dashCooldown <= 0 && this.moisture >= this.DASH_MOISTURE_COST;
+        this.debugText.setText([
+            `Dash Debug:`,
+            `Airborne: ${!debugOnGround}`,
+            `Cooldown: ${this.dashCooldown.toFixed(0)}ms`,
+            `Moisture: ${this.moisture.toFixed(0)}%`,
+            `Dash Count: ${this.dashCount}/1`,
+            `Dash Ready: ${dashReady}`,
+            `E Key: ${this.eKey.isDown}`,
+            `Dashing: ${this.isDashing}`,
+            `Velocity: (${debugBody.velocity.x.toFixed(0)}, ${debugBody.velocity.y.toFixed(0)})`
+        ]);
         
         // Respawn if player falls off the world
         if (this.player.y > 1000) {
@@ -370,9 +419,15 @@ export class Game extends Scene
             groundPoundPressed: false
         };
         
-        // Update ground pound cooldown
+        // Update cooldowns
         if (this.groundPoundCooldown > 0) {
             this.groundPoundCooldown -= this.game.loop.delta;
+        }
+        if (this.dashCooldown > 0) {
+            this.dashCooldown -= this.game.loop.delta;
+        }
+        if (this.dashInvulnerabilityTimer > 0) {
+            this.dashInvulnerabilityTimer -= this.game.loop.delta;
         }
         
         // Thornspike (Ground Pound) - Ctrl key or mobile button
@@ -419,11 +474,90 @@ export class Game extends Scene
             }
         }
         
-        // E key ability (placeholder for future abilities)
-        const ability2Input = this.eKey.isDown || mobileInput.ability2Pressed;
-        if (ability2Input) {
-            // Future ability implementation
-            console.log("Ability 2 pressed (not implemented yet)");
+        // Bloom Dash - E key or mobile button (8-way burst movement)
+        const dashInput = this.eKey.isDown || mobileInput.ability2Pressed;
+        const maxDashes = 1; // Maximum dashes per air time
+        const canDash = !isOnGround && !this.isDashing && this.dashCooldown <= 0 && 
+                       this.moisture >= this.DASH_MOISTURE_COST && this.dashCount < maxDashes;
+        
+        if (dashInput && canDash) {
+            // COMPLETELY REWRITTEN DASH SYSTEM
+            let dashX = 0;
+            let dashY = 0;
+            
+            // Get clean input state (separate from movement system)
+            const leftPressed = this.cursors.left.isDown || mobileInput.leftPressed;
+            const rightPressed = this.cursors.right.isDown || mobileInput.rightPressed;
+            const upPressed = this.cursors.up.isDown;
+            const downPressed = this.cursors.down.isDown;
+            
+            // DIAGONAL INPUT SYSTEM: Allow true 8-way movement
+            if (upPressed) dashY = -1;
+            if (downPressed) dashY = 1;
+            if (leftPressed) dashX = -1;
+            if (rightPressed) dashX = 1;
+            
+            // Only normalize if we have BOTH X and Y inputs (diagonal movement)
+            if (dashX !== 0 && dashY !== 0) {
+                // Diagonal movement - normalize to unit vector (0.707, 0.707)
+                const magnitude = Math.sqrt(dashX * dashX + dashY * dashY);
+                dashX = dashX / magnitude;
+                dashY = dashY / magnitude;
+            }
+            // Single direction inputs (up, down, left, right) keep their original values (1 or -1)
+            else if (dashX === 0 && dashY === 0) {
+                // No direction pressed - dash in facing direction
+                dashX = this.player.flipX ? -1 : 1;
+                dashY = 0;
+            }
+            
+            // Start dash state
+            this.isDashing = true;
+            this.dashDirection = { x: dashX, y: dashY };
+            this.dashCount++;
+            this.dashCooldown = this.DASH_COOLDOWN_MS;
+            this.dashInvulnerabilityTimer = this.DASH_INVULNERABILITY_MS;
+            
+            // Apply INSTANT velocity with direction-based adjustments
+            let dashVelocity = 800; // Base velocity
+            
+            // Adjust velocity based on direction to balance perceived power
+            if (dashY < 0) {
+                // Upward dash - reduce velocity since it feels too powerful
+                dashVelocity = 500; // Weaker upward dash
+            } else if (dashY > 0) {
+                // Downward dash - keep base velocity
+                dashVelocity = 800; // Standard downward dash
+            } else {
+                // Horizontal dash - keep base velocity
+                dashVelocity = 800; // Standard horizontal dash
+            }
+            
+            this.player.setVelocity(dashX * dashVelocity, dashY * dashVelocity);
+            
+            // Visual feedback
+            this.cameras.main.shake(100, 0.01);
+            this.player.setTint(0x00ffff);
+            
+            // Consume moisture
+            this.moisture -= this.DASH_MOISTURE_COST;
+            if (this.moisture < 0) this.moisture = 0;
+            
+            // End dash after fixed duration
+            this.time.delayedCall(this.DASH_DURATION_MS, () => {
+                if (this.isDashing) {
+                    this.isDashing = false;
+                    this.player.clearTint();
+                    console.log("Bloom Dash ended!");
+                }
+            });
+            
+            console.log(`Bloom Dash activated! Direction: (${dashX}, ${dashY}), Velocity: ${dashVelocity}px/s`);
+        }
+        
+        // Clear dash tint if dash ended but tint wasn't cleared
+        if (!this.isDashing && this.player.tint !== 0xffffff) {
+            this.player.clearTint();
         }
     }
 
@@ -693,6 +827,24 @@ export class Game extends Scene
             this.durabilityPips.fillStyle(0x00ffff, 0.8);
             this.durabilityPips.fillCircle(abilityX + 20, abilityY, 6);
         }
+        
+        // Dash cooldown indicator
+        if (this.dashCooldown > 0) {
+            this.durabilityPips.fillStyle(0xff0000, 0.8);
+            this.durabilityPips.fillCircle(abilityX + 40, abilityY, 6);
+        } else if (this.moisture >= this.DASH_MOISTURE_COST && this.dashCount < 1) {
+            this.durabilityPips.fillStyle(0x00ff00, 0.8);
+            this.durabilityPips.fillCircle(abilityX + 40, abilityY, 6);
+        } else {
+            this.durabilityPips.fillStyle(0x666666, 0.8);
+            this.durabilityPips.fillCircle(abilityX + 40, abilityY, 6);
+        }
+        
+        // Dash active indicator
+        if (this.isDashing) {
+            this.durabilityPips.fillStyle(0xff00ff, 0.8);
+            this.durabilityPips.fillCircle(abilityX + 40, abilityY, 8);
+        }
     }
     
     checkImpactDamage ()
@@ -741,6 +893,12 @@ export class Game extends Scene
     
     takeDurabilityDamage ()
     {
+        // Check for invulnerability (dash invulnerability)
+        if (this.dashInvulnerabilityTimer > 0) {
+            console.log("Damage blocked by dash invulnerability!");
+            return;
+        }
+        
         if (this.durability > 0) {
             this.durability--;
             console.log(`Pot cracked! Durability: ${this.durability}/4`);
