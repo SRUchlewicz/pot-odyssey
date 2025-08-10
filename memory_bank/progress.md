@@ -2,7 +2,7 @@
 
 ## What Works
 
-**Current Implementation Status**: ✅ **Playable Foundation Complete**
+**Current Implementation Status**: ✅ **Core Abilities System Complete**
 
 **Playable Game Features**:
 - 🎮 **Player Controller**: Brown pot character with physics body
@@ -11,11 +11,12 @@
 - 🧗 **Wall Sliding**: Slide down walls at reduced speed (60px/s) when holding toward wall
 - 💧 **Moisture System**: Diegetic ring visualization, drains 5% every 10s, respawn at 0%
 - ⚡ **Durability System**: 4-pip HUD display, damage from hard landings (>300px/s), shatter respawn
+- 🚀 **Core Abilities**: Thornspike (ground pound) and Glideleaf (gliding) fully implemented
 - 📱 **Cross-Platform**: Desktop keyboard + mobile touch controls working perfectly
 - 🎯 **Physics**: Arcade physics with gravity, collision, and platform interaction
 - 📹 **Camera**: Advanced following camera with world bounds and deadzone
 - 🎨 **UI**: "Pot Odyssey" branded menu with animated pot logo  
-- 🏗️ **Test Level**: Comprehensive multi-route climbing level for mechanic validation
+- 🏗️ **Test Level**: Comprehensive multi-route climbing level with ability testing areas
 
 **Technical Implementation Status**: ✅ **Production Ready Foundation**
 
@@ -24,6 +25,7 @@
 - ✅ **Memory Bank** - Complete project context documentation
 - ✅ **Project Planning** - Clear development roadmap established
 - ✅ **Foundation Platformer** - Working game with player movement, physics, and controls
+- ✅ **Core Abilities System** - Thornspike and Glideleaf with cross-platform controls
 
 **Development Infrastructure**: ✅ **Complete**
 - ✅ Node.js project setup with proper package.json
@@ -33,80 +35,67 @@
 
 ## What's Left to Build
 
-### Immediate Setup Tasks (Week 1)
-- [ ] **Project Initialization**
-  - Initialize package.json with project metadata
-  - Install Phaser 3 and core dependencies
-  - Configure build system (Vite recommended for Phaser 3)
-  - Create basic HTML entry point
-  - Set up development server with hot reload
+### Core Abilities System ✅ **COMPLETE**
+- [x] **Ability System Framework**
+  - ✅ Input handling for ability keys (Q, E, Ctrl)
+  - ✅ Cooldown management system
+  - ✅ Resource cost integration (moisture/durability)
+  - ✅ Visual feedback framework (HUD indicators, console logs)
 
-### Foundation Phase (Weeks 1-2)
-- [x] **Core Architecture**
-  - ✅ Scene management system (Boot, Preloader, MainMenu, Game, GameOver)
-  - ✅ Asset loading pipeline with placeholder graphics generation
-  - ✅ Input management abstraction (keyboard + mobile)
-  - ⏸️ Basic save/load system structure (deferred to later phase)
+- [x] **Thornspike (Ground Pound)**
+  - ✅ Downward slam attack with Ctrl key/mobile down arrow
+  - ✅ Brittle block destruction system
+  - ✅ Visual feedback (screen shake, console logs)
+  - ✅ Cooldown system (1 second)
+  - ✅ Proper collision handling (one block per ground pound)
 
-- [x] **Player Controller Foundation**
-  - ✅ Basic sprite rendering (brown pot placeholder)
-  - ✅ Physics body setup with Arcade physics (gravity: 800)
-  - ✅ Input handling for movement (arrow keys + WASD + mobile touch)
-  - ✅ Camera following system with smooth lerp
+- [x] **Glideleaf (Gliding)**
+  - ✅ Reduced fall speed with Q key/mobile Q button
+  - ✅ Moisture drain during gliding (0.5/s)
+  - ✅ Visual feedback (cyan HUD indicator, console logs)
+  - ✅ Integration with existing movement system
 
-### Movement Mechanics (Weeks 2-4)
-- [x] **Basic Platforming** ✅ **COMPLETE**
-  - ✅ Single jump mechanics with proper state management
-  - ✅ Ground detection and anti-infinite-jump system
-  - ✅ Platform collision detection and response
-  - ✅ Cross-platform input (keyboard: arrows/space, mobile: touch buttons)
+### Next Development Options
 
-- [x] **Advanced Movement Mechanics** ✅ **COMPLETE**
-  - ✅ Variable jump mechanics (hold spacebar for higher jumps with diminishing returns)
-  - ✅ Coyote time implementation (40ms grace period after leaving platforms)
-  - ✅ Jump buffering (180ms window for early jump inputs before landing)
-  - ✅ Wall slide mechanics (60px/s speed cap when holding toward wall while airborne)
+#### Option A: Additional Abilities
+- [ ] **Bloom Dash** (8-way burst movement)
+  - Press E while airborne for directional burst
+  - Brief invulnerability and short cooldown
+  - Small moisture cost
 
-- [x] **Resource Systems** ✅ **COMPLETE**
-  - ✅ Moisture meter with diegetic visual ring around player (color-coded: green→yellow→red)
-  - ✅ Durability system with HUD pips visualization (4 brown circles, gray when empty)
-  - ✅ Moisture drain mechanics (5% every 10 seconds, respawn at 0%)
-  - ✅ Impact damage system (hard landings >300px/s after 300ms airtime reduce durability)
-  - ✅ Resource restoration via respawn (50% moisture, full durability)
+- [ ] **Tanglevine** (utility/puzzle solving)
+  - Fire vine to pull levers or create bridges
+  - Range-based targeting system
+  - Cooldown management
 
-### First Playable (Weeks 4-6)
-- [x] **Basic Level System** ✅ **COMPLETE**
-  - ✅ Expanded test level with multiple climbing routes (left tower, center zigzag, right mega tower)
-  - ✅ Platform collision system working perfectly
-  - ✅ Camera system with world bounds (2048x1024) and player following
-  - ✅ Safety systems (auto-respawn, invisible boundary walls)
-  - [ ] Collectible placement and pickup
+#### Option B: Content Expansion
+- [ ] **Enhanced Test Level**
+  - Add more brittle blocks for ground pound testing
+  - Create gliding challenges with wind tunnels
+  - Add collectible items (Seed Shards, species)
 
-- [ ] **Core Abilities (First 2)**
-  - Thornspike (ground pound) - breaks brittle blocks
-  - Glideleaf (gliding) - reduced gravity while held
-  - Ability system framework (cooldowns, resource costs)
-  - Visual feedback for ability usage
-
-### Vertical Slice (Weeks 6-12)
-- [ ] **Complete Level Set**
-  - Backyard Garden 1-1, 1-2 (onboarding levels)
-  - Rooftops 2-1 (introducing wind and verticality)
-  - All 6 core abilities implemented
-  - Waypost checkpoint system
-
-- [ ] **Systems Integration**
-  - Loadout system (soil types, passives, abilities)
-  - Herbarium v1 (collectible species tracking)
+- [ ] **Progression Systems**
+  - Herbarium v1 (collectible tracking)
   - Basic cosmetics system
-  - Mobile controls implementation
+  - Loadout system (soil types, passives)
+
+#### Option C: Technical Systems
+- [ ] **Save/Load System**
+  - IndexedDB implementation
+  - Progress persistence
+  - Settings storage
+
+- [ ] **Performance Optimization**
+  - Sprite atlasing
+  - Object pooling
+  - Mobile optimization
 
 ## Progress Status by Category
 
 ### 📋 Design & Planning
 - **Status**: ✅ **Complete**
 - **Deliverables**: PRD finalized, memory bank established
-- **Next**: Begin technical implementation
+- **Next**: Choose next development priority
 
 ### 🔧 Technical Foundation
 - **Status**: ✅ **COMPLETE** 
@@ -115,15 +104,16 @@
 - **Target**: ✅ Completed ahead of schedule
 
 ### 🎮 Core Gameplay
-- **Status**: ✅ **ADVANCED MECHANICS COMPLETE**
-- **Achievements**: Full-featured platformer with pot character, advanced movement, resource systems
-- **Current**: Variable jump, coyote time, jump buffering, wall slide, moisture/durability systems
-- **Next**: First abilities implementation (Thornspike, Glideleaf)
+- **Status**: ✅ **CORE ABILITIES COMPLETE**
+- **Achievements**: Full-featured platformer with pot character, advanced movement, resource systems, and working abilities
+- **Current**: Variable jump, coyote time, jump buffering, wall slide, moisture/durability systems, Thornspike ground pound, Glideleaf gliding
+- **Next**: Choose next ability or content expansion
 
 ### 🎨 Content Creation
-- **Status**: ❌ **Not Started**
-- **Dependencies**: Core gameplay systems
-- **Target**: First level content within 4-6 weeks
+- **Status**: 🚧 **In Progress**
+- **Dependencies**: Core gameplay systems ✅
+- **Current**: Test level with ability testing areas
+- **Next**: Enhanced level content or collectibles
 
 ### 🚀 Polish & Optimization
 - **Status**: ❌ **Not Started**
@@ -134,11 +124,11 @@
 
 | Milestone | Target | Status | Dependencies |
 |-----------|--------|---------|--------------|
-| **Project Setup** | Week 1 | ❌ Pending | None |
-| **Basic Movement** | Week 3 | ❌ Pending | Project Setup |
-| **First Ability** | Week 4 | ❌ Pending | Basic Movement |
-| **Test Level** | Week 5 | ❌ Pending | First Ability |
-| **Vertical Slice** | Week 10 | ❌ Pending | All Above |
+| **Project Setup** | Week 1 | ✅ Complete | None |
+| **Basic Movement** | Week 3 | ✅ Complete | Project Setup |
+| **Core Abilities** | Week 6 | ✅ Complete | Basic Movement |
+| **Test Level** | Week 5 | ✅ Complete | Core Abilities |
+| **Vertical Slice** | Week 10 | 🚧 In Progress | All Above |
 
 ## Risk Assessment
 
@@ -152,9 +142,27 @@
 
 ## Development Velocity Tracking
 
-**Sprint 0 (Current)**: Project initialization phase
+**Sprint 0**: Project initialization phase ✅
 - **Planned**: Development environment setup
-- **Actual**: Not yet started
+- **Actual**: Completed successfully
 - **Blockers**: None
 
-*Note: Velocity tracking will begin once development starts*
+**Sprint 1**: Core movement and physics ✅
+- **Planned**: Basic platformer mechanics
+- **Actual**: Advanced movement with coyote time, jump buffering, wall slide
+- **Blockers**: None
+
+**Sprint 2**: Resource systems ✅
+- **Planned**: Moisture and durability systems
+- **Actual**: Complete resource systems with visual feedback
+- **Blockers**: None
+
+**Sprint 3**: Core abilities ✅
+- **Planned**: Thornspike and Glideleaf abilities
+- **Actual**: Complete ability system with cross-platform controls
+- **Blockers**: None
+
+**Sprint 4**: Next development priority (Choose One)
+- **Planned**: Additional abilities, content expansion, or technical systems
+- **Actual**: TBD
+- **Blockers**: None

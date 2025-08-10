@@ -8,6 +8,21 @@ export class Game extends Scene
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     spaceKey: Phaser.Input.Keyboard.Key;
     
+    // Ability system keys
+    qKey: Phaser.Input.Keyboard.Key;
+    eKey: Phaser.Input.Keyboard.Key;
+    ctrlKey: Phaser.Input.Keyboard.Key;
+    
+    // Ability system state
+    isGliding: boolean = false;
+    isGroundPounding: boolean = false;
+    groundPoundCooldown: number = 0;
+    readonly GROUND_POUND_COOLDOWN_MS: number = 1000; // 1 second cooldown
+    readonly GROUND_POUND_VELOCITY: number = 1100; // Downward velocity for ground pound
+    readonly GLIDE_GRAVITY_SCALE: number = 0.35; // Reduced gravity while gliding
+    readonly GLIDE_MOISTURE_DRAIN: number = 0.5; // Moisture drain per second while gliding
+    readonly NORMAL_GRAVITY_SCALE: number = 1.0; // Normal gravity scale
+    
     // Jump state management
     canJump: boolean = true;
     jumpPressed: boolean = false;
@@ -53,6 +68,9 @@ export class Game extends Scene
     leftButton: Phaser.GameObjects.Text;
     rightButton: Phaser.GameObjects.Text;
     jumpButton: Phaser.GameObjects.Text;
+    ability1Button: Phaser.GameObjects.Text; // Q key equivalent
+    ability2Button: Phaser.GameObjects.Text; // E key equivalent
+    groundPoundButton: Phaser.GameObjects.Text; // Ctrl key equivalent
 
     constructor ()
     {
@@ -117,12 +135,21 @@ export class Game extends Scene
         
         this.platforms.create(2800, 600, 'ground'); // Landing after wall slide
         
-        // ===== SECTION 5: DAMAGE TEST (X: 2800-3200) =====
-        // Horizontal damage test instead of vertical tower
+        // ===== SECTION 5: ABILITY TEST (X: 2800-3200) =====
+        // Area to test ground pound and gliding abilities
         this.platforms.create(3000, 700, 'ground'); // Ground level
-        this.platforms.create(3200, 600, 'ground'); // Medium fall (safe)
-        this.platforms.create(3400, 500, 'ground'); // Higher fall (damage)
-        this.platforms.create(3600, 400, 'ground'); // High fall (major damage)
+        this.platforms.create(3200, 600, 'ground'); // Platform for jumping up
+        
+        // Brittle blocks for ground pound testing
+        const brittleBlock1 = this.platforms.create(3400, 500, 'ground');
+        brittleBlock1.setTint(0x8B4513); // Brown tint to indicate it's breakable
+        brittleBlock1.setData('brittle', true); // Mark as breakable
+        
+        const brittleBlock2 = this.platforms.create(3600, 400, 'ground');
+        brittleBlock2.setTint(0x8B4513); // Brown tint to indicate it's breakable
+        brittleBlock2.setData('brittle', true); // Mark as breakable
+        
+        this.platforms.create(3800, 300, 'ground'); // Landing platform after breaking blocks
         
         // ===== SECTION 6: ENDURANCE RUN (X: 3600-4000) =====
         // Horizontal endurance with moisture testing
@@ -145,9 +172,13 @@ export class Game extends Scene
         this.add.text(1400, 500, 'VARIABLE JUMP', { fontSize: '24px', color: '#ffff00', stroke: '#000000', strokeThickness: 2 });
         this.add.text(2200, 500, 'COYOTE TIME', { fontSize: '24px', color: '#00ff00', stroke: '#000000', strokeThickness: 2 });
         this.add.text(2600, 400, 'WALL SLIDE', { fontSize: '24px', color: '#ff8800', stroke: '#000000', strokeThickness: 2 });
-        this.add.text(3200, 300, 'DAMAGE TEST', { fontSize: '24px', color: '#ff0000', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(3200, 300, 'ABILITY TEST', { fontSize: '24px', color: '#ff00ff', stroke: '#000000', strokeThickness: 2 });
         this.add.text(3800, 400, 'ENDURANCE', { fontSize: '24px', color: '#0088ff', stroke: '#000000', strokeThickness: 2 });
         this.add.text(1700, 250, 'HIGH ROUTE', { fontSize: '20px', color: '#ff00ff', stroke: '#000000', strokeThickness: 2 });
+        
+        // Add ability instructions
+        this.add.text(200, 200, 'CONTROLS: Q=Glide, Ctrl=Ground Pound', { fontSize: '16px', color: '#ffffff', stroke: '#000000', strokeThickness: 2 });
+        this.add.text(200, 220, 'Look for brown blocks to break with ground pound!', { fontSize: '14px', color: '#ffff00', stroke: '#000000', strokeThickness: 1 });
         
         // Make sure all platforms are static
         this.platforms.children.entries.forEach((platform: any) => {
@@ -160,7 +191,7 @@ export class Game extends Scene
         this.player.setCollideWorldBounds(false); // Disable for test level - allow free movement
 
         // Player physics
-        this.physics.add.collider(this.player, this.platforms);
+        this.physics.add.collider(this.player, this.platforms, this.handlePlatformCollision, undefined, this);
 
         // Camera follows player with bounds
         this.cameras.main.startFollow(this.player);
@@ -170,6 +201,11 @@ export class Game extends Scene
         // Create cursor keys for input
         this.cursors = this.input.keyboard!.createCursorKeys();
         this.spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        
+        // Initialize ability keys
+        this.qKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+        this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.ctrlKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
 
         // Camera follows player
         this.camera.startFollow(this.player);
@@ -303,6 +339,9 @@ export class Game extends Scene
             }
         }
         
+        // Update ability systems
+        this.updateAbilities();
+        
         // Update resource systems
         this.updateResources();
         this.checkImpactDamage();
@@ -313,6 +352,78 @@ export class Game extends Scene
             this.player.setPosition(200, 650); // Reset to main starting platform
             this.player.setVelocity(0, 0); // Stop all movement
             console.log("Fell off the world! Respawning...");
+        }
+    }
+
+    updateAbilities()
+    {
+        const body = this.player.body as Phaser.Physics.Arcade.Body;
+        const isOnGround = body.touching.down && body.velocity.y >= -10;
+        
+        // Get mobile input state for abilities
+        const mobileInput = this.registry.get('mobileInput') || { 
+            leftPressed: false, 
+            rightPressed: false, 
+            jumpPressed: false,
+            ability1Pressed: false,
+            ability2Pressed: false,
+            groundPoundPressed: false
+        };
+        
+        // Update ground pound cooldown
+        if (this.groundPoundCooldown > 0) {
+            this.groundPoundCooldown -= this.game.loop.delta;
+        }
+        
+        // Thornspike (Ground Pound) - Ctrl key or mobile button
+        const groundPoundInput = this.ctrlKey.isDown || mobileInput.groundPoundPressed;
+        if (groundPoundInput && !isOnGround && !this.isGroundPounding && this.groundPoundCooldown <= 0) {
+            // Start ground pound
+            this.isGroundPounding = true;
+            this.player.setVelocityY(this.GROUND_POUND_VELOCITY);
+            this.groundPoundCooldown = this.GROUND_POUND_COOLDOWN_MS;
+            console.log("Ground pound activated!");
+        }
+        
+        // End ground pound when hitting ground
+        if (this.isGroundPounding && isOnGround) {
+            this.isGroundPounding = false;
+            // Could add screen shake or particle effects here
+            console.log("Ground pound landed!");
+        }
+        
+        // Glideleaf (Gliding) - Q key or mobile button
+        const glideInput = this.qKey.isDown || mobileInput.ability1Pressed;
+        if (glideInput && !isOnGround && !this.isGroundPounding && !this.isWallSliding) {
+            // Start gliding
+            if (!this.isGliding) {
+                this.isGliding = true;
+                console.log("Gliding started!");
+            }
+            
+            // Apply gliding effect - reduce fall speed
+            if (body.velocity.y > 0) { // Only when falling
+                body.velocity.y *= 0.85; // Reduce fall speed by 15% each frame
+            }
+            
+            // Drain moisture while gliding
+            if (this.moisture > 0) {
+                this.moisture -= this.GLIDE_MOISTURE_DRAIN * (this.game.loop.delta / 1000);
+                if (this.moisture < 0) this.moisture = 0;
+            }
+        } else {
+            // Stop gliding
+            if (this.isGliding) {
+                this.isGliding = false;
+                console.log("Gliding stopped!");
+            }
+        }
+        
+        // E key ability (placeholder for future abilities)
+        const ability2Input = this.eKey.isDown || mobileInput.ability2Pressed;
+        if (ability2Input) {
+            // Future ability implementation
+            console.log("Ability 2 pressed (not implemented yet)");
         }
     }
 
@@ -348,8 +459,45 @@ export class Game extends Scene
         .setInteractive()
         .setScrollFactor(0);
 
+        // Ability 1 button (Glideleaf - Q key equivalent)
+        this.ability1Button = this.add.text(720, 680, 'Q', {
+            fontSize: '32px',
+            color: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5)
+        .setInteractive()
+        .setScrollFactor(0);
+
+        // Ability 2 button (E key equivalent)
+        this.ability2Button = this.add.text(800, 680, 'E', {
+            fontSize: '32px',
+            color: '#0088ff',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5)
+        .setInteractive()
+        .setScrollFactor(0);
+
+        // Ground Pound button (Ctrl key equivalent)
+        this.groundPoundButton = this.add.text(960, 680, '⬇', {
+            fontSize: '32px',
+            color: '#ff8800',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5)
+        .setInteractive()
+        .setScrollFactor(0);
+
         // Initialize mobile input state
-        const mobileInput = { leftPressed: false, rightPressed: false, jumpPressed: false };
+        const mobileInput = { 
+            leftPressed: false, 
+            rightPressed: false, 
+            jumpPressed: false,
+            ability1Pressed: false,
+            ability2Pressed: false,
+            groundPoundPressed: false
+        };
         this.registry.set('mobileInput', mobileInput);
 
         // Left button events
@@ -393,6 +541,66 @@ export class Game extends Scene
             mobileInput.jumpPressed = false;
             this.registry.set('mobileInput', mobileInput);
         });
+
+        // Ability 1 button events (Glideleaf)
+        this.ability1Button.on('pointerdown', () => {
+            mobileInput.ability1Pressed = true;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.ability1Button.on('pointerup', () => {
+            mobileInput.ability1Pressed = false;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.ability1Button.on('pointerout', () => {
+            mobileInput.ability1Pressed = false;
+            this.registry.set('mobileInput', mobileInput);
+        });
+
+        // Ability 2 button events (E key)
+        this.ability2Button.on('pointerdown', () => {
+            mobileInput.ability2Pressed = true;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.ability2Button.on('pointerup', () => {
+            mobileInput.ability2Pressed = false;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.ability2Button.on('pointerout', () => {
+            mobileInput.ability2Pressed = false;
+            this.registry.set('mobileInput', mobileInput);
+        });
+
+        // Ground Pound button events
+        this.groundPoundButton.on('pointerdown', () => {
+            mobileInput.groundPoundPressed = true;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.groundPoundButton.on('pointerup', () => {
+            mobileInput.groundPoundPressed = false;
+            this.registry.set('mobileInput', mobileInput);
+        });
+        this.groundPoundButton.on('pointerout', () => {
+            mobileInput.groundPoundPressed = false;
+            this.registry.set('mobileInput', mobileInput);
+        });
+    }
+
+    handlePlatformCollision(player: any, platform: any)
+    {
+        // Check if this is a ground pound hitting a brittle block
+        if (this.isGroundPounding && platform.getData && platform.getData('brittle')) {
+            // Destroy the brittle block
+            platform.destroy();
+            console.log("Brittle block destroyed!");
+            
+            // End ground pound state immediately when hitting a brittle block
+            this.isGroundPounding = false;
+            
+            // Add visual feedback (screen shake)
+            this.cameras.main.shake(200, 0.01);
+            
+            // Could add particle effects here
+        }
     }
 
     createHUD ()
@@ -465,6 +673,25 @@ export class Game extends Scene
             const color = filled ? 0x8B4513 : 0x333333; // Brown for filled, gray for empty
             this.durabilityPips.fillStyle(color, filled ? 1.0 : 0.3);
             this.durabilityPips.fillCircle(startX + (i * pipSpacing), startY, pipSize);
+        }
+        
+        // Draw ability status indicators
+        const abilityX = 50;
+        const abilityY = 80;
+        
+        // Ground pound cooldown indicator
+        if (this.groundPoundCooldown > 0) {
+            this.durabilityPips.fillStyle(0xff0000, 0.8);
+            this.durabilityPips.fillCircle(abilityX, abilityY, 6);
+        } else {
+            this.durabilityPips.fillStyle(0x00ff00, 0.8);
+            this.durabilityPips.fillCircle(abilityX, abilityY, 6);
+        }
+        
+        // Gliding indicator
+        if (this.isGliding) {
+            this.durabilityPips.fillStyle(0x00ffff, 0.8);
+            this.durabilityPips.fillCircle(abilityX + 20, abilityY, 6);
         }
     }
     
